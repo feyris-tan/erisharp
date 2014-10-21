@@ -46,7 +46,11 @@
     <Compile Include="Constants.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\Context\ERISADecodeContext.cs" />
+    <Compile Include="src\Context\ERISAEncodeContext.cs" />
     <Compile Include="src\erisamatrix.cs" />
+    <Compile Include="src\Sound\MIODecoder.cs" />
+    <Compile Include="src\Sound\MIOEncoder.cs" />
     <Compile Include="src\xerisa.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
