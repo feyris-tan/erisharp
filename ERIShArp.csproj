@@ -35,12 +35,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Constants.cs" />
@@ -51,6 +46,16 @@
     <Compile Include="src\Context\ERISAEncodeContext.cs" />
     <Compile Include="src\erisacontext.cs" />
     <Compile Include="src\erisamatrix.cs" />
+    <Compile Include="src\File\EMCFile.cs" />
+    <Compile Include="src\File\ERIFile.cs" />
+    <Compile Include="src\File\ERISAArchive.cs" />
+    <Compile Include="src\File\ERISAArchiveList.cs" />
+    <Compile Include="src\Image\ERISADecoder.cs" />
+    <Compile Include="src\Image\ERISAEncoder.cs" />
+    <Compile Include="src\Play\ERIAnimation.cs" />
+    <Compile Include="src\Play\ERIAnimationWriter.cs" />
+    <Compile Include="src\Play\ESLAnimationOutputInterface.cs" />
+    <Compile Include="src\Play\MIODynamicPlayer.cs" />
     <Compile Include="src\Sound\MIODecoder.cs" />
     <Compile Include="src\Sound\MIOEncoder.cs" />
     <Compile Include="src\xerisa.cs" />
