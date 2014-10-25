@@ -8,11 +8,11 @@ namespace ERIShArp.File
     {
 	    public ERISAArchiveList()
         {
-            throw new NotImplementedException();
+            m_pCurDir = m_dirRoot;
         }
         ~ERISAArchiveList()
         {
-            throw new NotImplementedException();
+            DeleteContents();
         }
 
 	    public class	EFileEntry

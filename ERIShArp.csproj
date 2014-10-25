@@ -59,6 +59,7 @@
     <Compile Include="src\Sound\MIODecoder.cs" />
     <Compile Include="src\Sound\MIOEncoder.cs" />
     <Compile Include="src\xerisa.cs" />
+    <Compile Include="Extensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
