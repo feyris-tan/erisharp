@@ -214,7 +214,7 @@ namespace ERIShArp.Context
             throw new NotImplementedException();
         }
 
-        public int DecideERISACodeIndex(ERISA_PROB_MODEL[] pModel)
+        public int DecodeERISACodeIndex(ERISA_PROB_MODEL[] pModel)
         {
             throw new NotImplementedException();
         }
@@ -225,6 +225,11 @@ namespace ERIShArp.Context
         }
 
         public uint DecodeERISACodeWords(short[] ptrDst, uint nCount)
+        {
+            throw new NotImplementedException();
+        }
+
+        public uint DecodeERISANCodeBytes(byte[] ptrDst, uint nCount)
         {
             throw new NotImplementedException();
         }
