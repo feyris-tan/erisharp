@@ -20,6 +20,9 @@ namespace ERIShArp
                 test = arc.OpenFileObject(file.Key, 0);
                 uint length = test.GetLength();
                 byte[] buffer = new byte[length];
+                test.Read(buffer, length);
+                System.IO.File.WriteAllBytes(file.Key.Replace("\0",""), buffer);
+                test.Close();
             }
             arc.Close();
         }

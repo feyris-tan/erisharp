@@ -123,6 +123,7 @@ namespace ERIShArp.File
                 while (m_pRecord != null)
                 {
                     AscendRecord();
+                    return;
                 }
             }
             while (m_pRecord != null)
