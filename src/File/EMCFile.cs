@@ -47,7 +47,6 @@ namespace ERIShArp.File
                     return System.Text.Encoding.ASCII.GetString(cFormatDesc);
                 }
             }
-
             public FILE_HEADER Clone()
             {
                 FILE_HEADER result = new FILE_HEADER();

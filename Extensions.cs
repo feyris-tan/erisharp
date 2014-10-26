@@ -73,6 +73,7 @@ namespace ERIShArp
         public static ulong SeekLarge(this Stream target, ulong length, SeekOrigin origin)
         {
             return (ulong)target.Seek((long)length, origin);
+
         }
 
         public static uint ReadUInt32(this Stream target)
