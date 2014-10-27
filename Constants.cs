@@ -41,17 +41,17 @@ namespace ERIShArp
 
         const byte MIO_LEAD_BLOCK	=0x01;
 
-        const uint ERINA_CODE_FLAG			= 0x80000000U;
-        const uint ERINA_HUFFMAN_ESCAPE	        = 0x7FFFFFFF;
-        const uint ERINA_HUFFMAN_NULL		= 0x8000U;
-        const uint ERINA_HUFFMAN_MAX		= 0x4000;
-        const uint ERINA_HUFFMAN_ROOT = 0x200;
+        public const uint ERINA_CODE_FLAG			= 0x80000000U;
+        public const int ERINA_HUFFMAN_ESCAPE	        = 0x7FFFFFFF;
+        public const uint ERINA_HUFFMAN_NULL		= 0x8000U;
+        public const uint ERINA_HUFFMAN_MAX		= 0x4000;
+        public const int ERINA_HUFFMAN_ROOT = 0x200;
 
-        const int ERISA_TOTAL_LIMIT	= 0x2000;	
-        const int ERISA_SYMBOL_SORTS	= 0x101;	
-        const int ERISA_SUB_SORT_MAX	= 0x80;
+        public const int ERISA_TOTAL_LIMIT	= 0x2000;	
+        public const int ERISA_SYMBOL_SORTS	= 0x101;	
+        public const int ERISA_SUB_SORT_MAX	= 0x80;
         const int ERISA_PROB_SLOT_MAX	= 0x800;	
-        const int ERISA_ESC_CODE = (-1);
+        public const short ERISA_ESC_CODE = (-1);
 
         const uint NEMESIS_BUF_SIZE = 0x10000;
 	    const uint NEMESIS_BUF_MASK	= 0xFFFF;

@@ -31,7 +31,7 @@ namespace ERIShArp.Context
         /// </summary>
         protected byte[] m_bytLastSymbol;
         protected int m_iLastSymbol;
-        protected ERISSA_PROB_BASE[] m_pProbERISA;
+        protected ERISA_PROB_BASE[] m_pProbERISA;
         protected uint m_dwERISAFlags;
         protected byte[] m_pNemesisBuf;
         protected int m_nNemesisIndex;

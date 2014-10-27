@@ -17,37 +17,225 @@ namespace ERIShArp.Context
         /// <summary>
         /// 0x201 elements
         /// </summary>
-        ERINA_HUFFMAN_NODE[] m_hnTree;
+        public ERINA_HUFFMAN_NODE[] m_hnTree;
         /// <summary>
         /// 0x100 elements
         /// </summary>
         int[] m_iSymLookup;
-        int m_iEscape;
+        public int m_iEscape;
         int m_iTreePointer;
 
         public void Initalize()
         {
-            throw new NotImplementedException();
+            for (int i = 0; i < 0x100; i++)
+            {
+                m_iSymLookup[i] = (int)Constants.ERINA_HUFFMAN_NULL;
+            }
+            m_iEscape = (int)Constants.ERINA_HUFFMAN_NULL;
+            m_iTreePointer = Constants.ERINA_HUFFMAN_ROOT;
+            m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_weight = 0;
+            m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_parent = (ushort)Constants.ERINA_HUFFMAN_NULL;
+            m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_child_code = Constants.ERINA_HUFFMAN_NULL;
         }
         public void IncreaseOccuredCount(int iEntry)
         {
-            throw new NotImplementedException();
+            m_hnTree[iEntry].m_weight++;
+            Normalize(iEntry);
+            if (m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_weight >= Constants.ERINA_HUFFMAN_MAX)
+            {
+                HalfAndRebuild();
+            }
         }
         public void RecountOccuredCount(int iParent)
         {
-            throw new NotImplementedException();
+            int iChild = (int)m_hnTree[iParent].m_child_code;
+            m_hnTree[iParent].m_weight = (ushort)(m_hnTree[iChild].m_weight + m_hnTree[iChild + 1].m_weight);
         }
         public void Normalize(int iEntry)
         {
-            throw new NotImplementedException();
+            while (iEntry < Constants.ERINA_HUFFMAN_ROOT)
+            {
+                int iSwap = iEntry + 1;
+                ushort weight = m_hnTree[iEntry].m_weight;
+                while (iSwap < Constants.ERINA_HUFFMAN_ROOT)
+                {
+                    if (m_hnTree[iSwap].m_weight >= weight)
+                        break;
+                    ++iSwap;
+                }
+                if (iEntry == --iSwap)
+                {
+                    iEntry = m_hnTree[iEntry].m_parent;
+                    RecountOccuredCount(iEntry);
+                    continue;
+                }
+                int iChild, nCode;
+                if ((m_hnTree[iEntry].m_child_code & Constants.ERINA_CODE_FLAG) == 0)
+                {
+                    iChild = (int)m_hnTree[iEntry].m_child_code;
+                    m_hnTree[iChild].m_parent = (ushort)iSwap;
+                    m_hnTree[iChild + 1].m_parent = (ushort)iSwap;
+                }
+                else
+                {
+                    nCode = (int)(m_hnTree[iEntry].m_child_code & ~Constants.ERINA_CODE_FLAG);
+                    if (nCode != Constants.ERINA_HUFFMAN_ESCAPE)
+                        m_iSymLookup[nCode & 0xFF] = iSwap;
+                    else
+                        m_iEscape = iSwap;
+                }
+                if ((m_hnTree[iSwap].m_child_code & Constants.ERINA_CODE_FLAG) == 0)
+                {
+                    iChild = (int)m_hnTree[iSwap].m_child_code;
+                    m_hnTree[iChild].m_parent = (ushort)iEntry;
+                    m_hnTree[iChild + 1].m_parent = (ushort)iEntry;
+                }
+                else
+                {
+                    nCode = (int)(m_hnTree[iSwap].m_child_code & ~Constants.ERINA_CODE_FLAG);
+                    if (nCode != Constants.ERINA_HUFFMAN_ESCAPE)
+                        m_iSymLookup[nCode & 0xFF] = iEntry;
+                    else
+                        m_iEscape = iEntry;
+                }
+                ERINA_HUFFMAN_NODE node;
+                ushort iEntryParent = m_hnTree[iEntry].m_parent;
+                ushort iSwapParent = m_hnTree[iSwap].m_parent;
+                node = m_hnTree[iSwap];
+                m_hnTree[iSwap] = m_hnTree[iEntry];
+                m_hnTree[iEntry] = node;
+                m_hnTree[iSwap].m_parent = iSwapParent;
+                m_hnTree[iEntry].m_parent = iEntryParent;
+
+                RecountOccuredCount(iSwapParent);
+                iEntry = iSwapParent;
+            }
         }
         public void AddNewEntry(int nNewCode)
         {
-            throw new NotImplementedException();
+            if (m_iTreePointer > 0)
+            {
+                int i = m_iTreePointer = m_iTreePointer - 2;
+
+                ERINA_HUFFMAN_NODE phnNew = m_hnTree[i];
+                phnNew.m_weight = 1;
+                phnNew.m_child_code = (uint)(Constants.ERINA_CODE_FLAG | nNewCode);
+                m_iSymLookup[nNewCode & 0xFF] = i;
+
+                ERINA_HUFFMAN_NODE phnRoot = m_hnTree[Constants.ERINA_HUFFMAN_ROOT];
+                if (phnRoot.m_child_code != Constants.ERINA_HUFFMAN_NULL)
+                {
+                    ERINA_HUFFMAN_NODE phnParent = m_hnTree[i + 2];
+                    ERINA_HUFFMAN_NODE phnChild = m_hnTree[i + 1];
+                    m_hnTree[i + 1] = m_hnTree[i + 2];
+                    if ((phnChild.m_child_code & Constants.ERINA_CODE_FLAG) != 0)
+                    {
+                        int nCode = (int)(phnChild.m_child_code & ~Constants.ERINA_CODE_FLAG);
+                        if (nCode != Constants.ERINA_HUFFMAN_ESCAPE)
+                            m_iSymLookup[nCode & 0xFF] = i + 1;
+                        else
+                            m_iEscape = i + 1;
+                    }
+                    phnParent.m_weight = (ushort)(phnNew.m_weight + phnChild.m_weight);
+                    phnParent.m_parent = phnChild.m_parent;
+                    phnParent.m_child_code = (uint)i;
+                    phnNew.m_parent = phnNew.m_parent = (ushort)(i + 2);
+                    Normalize(i + 2);
+                }
+                else
+                {
+                    phnNew.m_parent = Constants.ERINA_HUFFMAN_ROOT;
+                    ERINA_HUFFMAN_NODE phnEscape = m_hnTree[m_iEscape = i + 1];
+                    phnEscape.m_weight = 1;
+                    phnEscape.m_parent = Constants.ERINA_HUFFMAN_ROOT;
+                    phnEscape.m_child_code = Constants.ERINA_CODE_FLAG | Constants.ERINA_HUFFMAN_ESCAPE;
+
+                    phnRoot.m_weight = 2;
+                    phnRoot.m_child_code = (uint)i;
+                }
+            }
+            else
+            {
+                int i = m_iTreePointer;
+                ERINA_HUFFMAN_NODE phnEntry = m_hnTree[i];
+                if (phnEntry.m_child_code == (Constants.ERINA_CODE_FLAG | Constants.ERINA_HUFFMAN_ESCAPE))
+                {
+                    phnEntry = m_hnTree[i + 1];
+                }
+                phnEntry.m_child_code = (uint)(Constants.ERINA_CODE_FLAG | nNewCode);
+            }
         }
         public void HalfAndRebuild()
         {
-            throw new NotImplementedException();
+            int i;
+            int iNextEntry = Constants.ERINA_HUFFMAN_ROOT;
+            for (i = Constants.ERINA_HUFFMAN_ROOT - 1; i >= m_iTreePointer; i--)
+            {
+                if ((m_hnTree[i].m_child_code & Constants.ERINA_CODE_FLAG) != 0)
+                {
+                    m_hnTree[i].m_weight = (ushort)((m_hnTree[i].m_weight + 1) >> 1);
+                    m_hnTree[iNextEntry--] = m_hnTree[i];
+                }
+            }
+            ++iNextEntry;
+
+            int iChild, nCode;
+            i = m_iTreePointer;
+            for (; ; )
+            {
+                m_hnTree[i] = m_hnTree[iNextEntry];
+                m_hnTree[i + 1] = m_hnTree[iNextEntry + 1];
+                iNextEntry += 2;
+                ERINA_HUFFMAN_NODE phnChild1 = m_hnTree[i];
+                ERINA_HUFFMAN_NODE phnChild2 = m_hnTree[i + 1];
+
+                if ((phnChild1.m_child_code & Constants.ERINA_CODE_FLAG) == 0)
+                {
+                    iChild = (int)phnChild1.m_child_code;
+                    m_hnTree[iChild].m_parent = (ushort)i;
+                    m_hnTree[iChild + 1].m_parent = 1;
+                }
+                else
+                {
+                    nCode = (int)(phnChild1.m_child_code & ~Constants.ERINA_CODE_FLAG);
+                    if (nCode == Constants.ERINA_HUFFMAN_ESCAPE)
+                        m_iEscape = i;
+                    else
+                        m_iSymLookup[nCode & 0xFF] = i;
+                }
+                ushort weight = (ushort)(phnChild1.m_weight + phnChild2.m_weight);
+                if (iNextEntry <= Constants.ERINA_HUFFMAN_ROOT)
+                {
+                    int j = iNextEntry;
+                    for (; ; )
+                    {
+                        if (weight <= m_hnTree[j].m_weight)
+                        {
+                            m_hnTree[j - 1].m_weight = weight;
+                            m_hnTree[j - 1].m_child_code = (uint)i;
+                            break;
+                        }
+                        m_hnTree[j - 1] = m_hnTree[j];
+                        if (++j > Constants.ERINA_HUFFMAN_ROOT)
+                        {
+                            m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_weight = weight;
+                            m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_child_code = (uint)i;
+                            break;
+                        }
+                    }
+                    --iNextEntry;
+                }
+                else
+                {
+                    m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_weight = weight;
+                    m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_parent = (ushort)Constants.ERINA_HUFFMAN_NULL;
+                    m_hnTree[Constants.ERINA_HUFFMAN_ROOT].m_child_code = (uint)i;
+                    phnChild1.m_parent = Constants.ERINA_HUFFMAN_ROOT;
+                    phnChild2.m_parent = Constants.ERINA_HUFFMAN_ROOT;
+                    break;
+                }
+                i += 2;
+            }
         }
     }
 
@@ -80,36 +268,103 @@ namespace ERIShArp.Context
 
         public void Initalize()
         {
-            throw new NotImplementedException();
+            dwTotalCount = Constants.ERISA_SYMBOL_SORTS;
+            dwSymbolSorts = Constants.ERISA_SYMBOL_SORTS;
+
+            int i;
+            for (i = 0; i < 0x100; i++)
+            {
+                acsSymTable[i].wOccured = 1;
+                acsSymTable[i].wSymbol = (short)(byte)i;
+            }
+            acsSymTable[0x100].wOccured = 1;
+            acsSymTable[0x100].wSymbol = (short)Constants.ERISA_ESC_CODE;
+
+            for (i = 0; i < Constants.ERISA_SUB_SORT_MAX; i++)
+            {
+                acsSubModel[i].wOccured = 0;
+                acsSubModel[i].wSymbol = (short)-1;
+            }
         }
 
-        public int AccumulateProbe(short wSymbol)
+        public int AccumulateProb(short wSymbol)
         {
-            throw new NotImplementedException();
+            int iSym = FindSymbol(wSymbol);
+            ESLAssert(iSym >= 0);
+            uint dwOccured = acsSymTable[iSym].wOccured;
+            int i = 0;
+            while (dwOccured < dwTotalCount)
+            {
+                dwOccured <<= 1;
+                i++;
+            }
+            return i;
         }
 
         public void HalfOccuredCount()
         {
-            throw new NotImplementedException();
+            uint i;
+            dwTotalCount = 0;
+            for (i = 0; i < dwSymbolSorts; i++)
+            {
+                dwTotalCount += acsSymTable[i].wOccured = (ushort)((acsSymTable[i].wOccured + 1) >> 1);
+            }
+            for (i = 0; i < Constants.ERISA_SUB_SORT_MAX; i++)
+            {
+                acsSubModel[i].wOccured >>= 1;
+            }
         }
 
         public int IncreaseSymbol(int index)
         {
-            throw new NotImplementedException();
+            ushort wOccured = ++acsSymTable[index].wOccured;
+            short wSymbol = acsSymTable[index].wSymbol;
+
+            while (--index >= 0)
+            {
+                if (acsSymTable[index].wOccured >= wOccured)
+                    break;
+                acsSymTable[index + 1] = acsSymTable[index];
+            }
+            acsSymTable[++index].wOccured = wOccured;
+            acsSymTable[index].wSymbol = wSymbol;
+
+            if (++dwTotalCount >= Constants.ERISA_TOTAL_LIMIT)
+            {
+                HalfOccuredCount();
+            }
+
+            return index;
         }
 
         public int FindSymbol(short wSymbol)
         {
-            throw new NotImplementedException();
+            int iSym = 0;
+            while (acsSymTable[iSym].wSymbol != wSymbol)
+            {
+                if ((uint)(++iSym) >= dwSymbolSorts)
+                    return -1;
+            }
+            return iSym;
         }
 
         public int AddSymbol(short wSymbol)
         {
-            throw new NotImplementedException();
+            int iSym = (int)dwSymbolSorts++;
+            dwTotalCount++;
+            acsSymTable[iSym].wSymbol = wSymbol;
+            acsSymTable[iSym].wOccured = 1;
+            return iSym;
+        }
+
+        private void ESLAssert(bool condition)
+        {
+            if (!condition)
+                throw new Exception();
         }
     }
 
-    public struct ERISSA_PROB_BASE
+    public struct ERISA_PROB_BASE
     {
         public ERISA_PROB_MODEL[] ptrProbWork;
         public uint dwWorkUsed;
