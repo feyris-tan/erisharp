@@ -11,18 +11,15 @@ namespace ERIShArp
         static void Main(string[] args)
         {
             ERISAArchive arc = new ERISAArchive();
-            arc.Open(System.IO.File.OpenRead(args[0]));
+            arc.Open(new PhysicalFile(System.IO.File.OpenRead(args[0])));
             ERISAArchive.EDirectory files = arc.ReferFileEntries();
 
             EMCFile test = null;
             foreach (KeyValuePair<string, ERISAArchive.FILE_INFO> file in files)
             {
                 test = arc.OpenFileObject(file.Key, 0);
-                uint length = test.GetLength();
-                byte[] buffer = new byte[length];
-                test.Read(buffer, length);
-                System.IO.File.WriteAllBytes(file.Key.Replace("\0",""), buffer);
-                test.Close();
+                ERIFile eri = new ERIFile();
+                eri.Open(test);
             }
             arc.Close();
         }

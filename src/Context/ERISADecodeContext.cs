@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using ERIShArp.File;
 
 namespace ERIShArp.Context
 {
-
     
     public class ERISADecodeContext
     {
@@ -15,7 +15,7 @@ namespace ERIShArp.Context
         protected byte[] m_ptrBuffer;
         protected Pointer m_ptrNextBuf;
 
-        protected Stream m_pFile;
+        protected EMCFile m_pFile;
         protected ERISADecodeContext m_pContext;
 
         protected ContextPointer m_pfnDecodeSymbolBytes;
@@ -35,7 +35,7 @@ namespace ERIShArp.Context
         /// </summary>
         protected byte[] m_bytLastSymbol;
         protected int m_iLastSymbol;
-        protected ERISA_PROB_MODEL m_pRobERISA;
+        protected ERISA_PROB_MODEL m_pProbERISA;
 
         protected int m_nNemesisLeft;
         protected int m_nNemesisNext;
@@ -57,7 +57,7 @@ namespace ERIShArp.Context
         protected event SimpleDelegate m_eventPredecoded;
 
         protected bool m_fPredecodingMode;
-        protected byte[] m_bytPredecodeBuf;
+        protected byte[] m_pbytPredecodeBuf;
         protected uint m_dwPredecodedBytes;
         protected uint m_dwUsedPredecodedBytes;
         protected uint m_dwPredecodeBufSize;
@@ -70,27 +70,84 @@ namespace ERIShArp.Context
 
         public ERISADecodeContext(uint nBufferingSize)
         {
-            throw new NotImplementedException();
+            m_nIntBufCount = 0;
+            m_nBufferingSize = (uint)((nBufferingSize + 0x03) & ~0x03);
+            m_nBufCount = 0;
+            m_ptrBuffer = new byte[nBufferingSize];
+            m_pFile = null;
+            m_pContext = null;
+
+            m_pfnDecodeSymbolBytes = null;
+
+            m_ppHuffmanTree = null;
+            m_pProbERISA = null;
+            m_pNemesisBuf = null;
+            m_pNemesisLookup = null;
+            m_pPhraseLenProb = null;
+            m_pPhraseIndexProb = null;
+            m_pRunLenProb = null;
+            m_ppTableERISA = null;
+            m_nFlagEOF = 0;
+            m_pBshBuf = null;
+
+            m_fPredecodingMode = false;
+            m_pbytPredecodeBuf = null;
+            m_dwPredecodedBytes = 0;
+            m_dwUsedPredecodedBytes = 0;
+            m_dwPredecodeBufSize = 0;
         }
 
         ~ERISADecodeContext()
         {
-            throw new NotImplementedException();
+            m_ptrBuffer = null;
+            if (m_ppHuffmanTree != null) m_ppHuffmanTree = null;
+            if (m_pProbERISA != null) m_pProbERISA = null;
+            if (m_pNemesisBuf != null) m_pNemesisBuf = null;
+            if (m_pNemesisLookup != null) m_pNemesisLookup = null;
+            if (m_pPhraseLenProb != null) m_pPhraseLenProb = null;
+            if (m_pPhraseIndexProb != null) m_pPhraseIndexProb = null;
+            if (m_pRunLenProb != null) m_pRunLenProb = null;
+            if (m_ppTableERISA != null) m_ppTableERISA = null;
+            m_pBshBuf = null;
+            if (m_pbytPredecodeBuf != null)
+            {
+                m_pbytPredecodeBuf = null;
+                m_dwPredecodedBytes = 0;
+                m_dwPredecodeBufSize = 0;
+            }
+            if (m_threadPredecode.IsAlive)
+            {
+                m_threadPredecode.Abort();
+                m_threadPredecode.Join();
+            }
         }
 
-        public void AttachInputFile(Stream pfile)
+        public void AttachInputFile(EMCFile pfile)
         {
-            throw new NotImplementedException();
+            m_pFile = pfile;
+            m_pContext = null;
         }
 
         public void AttachInputContext(ERISADecodeContext pcontext)
         {
-            throw new NotImplementedException();
+            m_pFile = null;
+            m_pContext = pcontext;
         }
 
         public virtual uint ReadNextData(byte[] ptrBuffer, uint nBytes)
         {
-            throw new NotImplementedException();
+            if (m_pFile != null)
+            {
+                return m_pFile.Read(ptrBuffer, nBytes);
+            }
+            else if (m_pContext != null)
+            {
+                return m_pContext.DecodeSymbolBytes(ptrBuffer, nBytes);
+            }
+            else
+            {
+                throw new IOException();
+            }
         }
 
         public bool PrefetchBuffer()
@@ -150,7 +207,8 @@ namespace ERIShArp.Context
 
         public void FlushBuffer()
         {
-            throw new NotImplementedException();
+            m_nIntBufCount = 0;
+            m_nBufCount = 0;
         }
 
         public uint DecodeSymbolBytes(byte[] ptrDst, uint nCount)
@@ -165,12 +223,13 @@ namespace ERIShArp.Context
 
         public void PrepareGammaCode()
         {
-            throw new NotImplementedException();
+            m_pfnDecodeSymbolBytes = DecodeGammaCodeBytes;
         }
 
         public void InitGammaContext()
         {
-            throw new NotImplementedException();
+            m_flgZero = GetABit();
+            m_nLength = 0;
         }
 
         public int GetGammaCode()
@@ -475,7 +534,10 @@ namespace ERIShArp.Context
 
         public void InitalizeERISACode()
         {
-            throw new NotImplementedException();
+            m_nLength = 0;
+            m_dwCodeRegister = GetNBits(32);
+            m_dwAugendRegister = 0xFFFF;
+            m_nPostBitCount = 0;
         }
 
         public int DecodeERISACode(ERISA_PROB_MODEL pModel)

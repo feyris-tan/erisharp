@@ -2,6 +2,7 @@
 using System.Drawing;
 using ERIShArp.X;
 using System.IO;
+using System.Collections.Generic;
 
 namespace ERIShArp.File
 {
@@ -28,7 +29,8 @@ namespace ERIShArp.File
         /// <summary>
         /// tagMax entries
         /// </summary>
-	    public static char[]	m_pwszTagName;
+	    public static string[]	m_pwszTagName = { "title", "vocal-player", "composer", "arranger", "source", "track", "release-date", "genre", "rewind-point", "hot-spot", "resolution", 
+                                                  "comment", "words", "reference-file"} ;
 
 	    public class	ETagObject
 	    {
@@ -36,24 +38,20 @@ namespace ERIShArp.File
 		    public string		m_contents ;
 		    public ETagObject()
             {
-                throw new NotImplementedException();
             }
 		    ~ETagObject()
             {
-                throw new NotImplementedException();
             }
 	    }
 
 	    public class	ETagInfo
 	    {
-		    public ETagObject[]	m_lstTags ;
+		    public List<ETagObject>	m_lstTags ;
 		    public ETagInfo()
             {
-                throw new NotImplementedException();
             }
 		    ~ETagInfo()
             {
-                throw new NotImplementedException();
             }
 		    public void CreateTagInfo( char[] pwszDesc )
             {
@@ -63,21 +61,24 @@ namespace ERIShArp.File
             {
                 throw new NotImplementedException();
             }
-		    public void AddTag( TagIndex tagIndex, char[] pwszContents )
+		    public void AddTag( TagIndex tagIndex, string pwszContents )
             {
-                throw new NotImplementedException();
+                ETagObject pTag = new ETagObject();
+                pTag.m_tag = m_pwszTagName[(int)tagIndex];
+                pTag.m_contents = pwszContents;
+                m_lstTags.Add(pTag);
             }
 		    public void DeleteContents()
             {
-                throw new NotImplementedException();
+                m_lstTags.Clear();
             }
-		    public char[] GetTagContents( char[] pwszTag ) 
+		    public char[] GetTagContents( string pwszTag ) 
             {
                 throw new NotImplementedException();
             }
 		    public char[] GetTagContents( TagIndex tagIndex )
             {
-                throw new NotImplementedException();
+                return GetTagContents(ERIFile.m_pwszTagName[(int)tagIndex]);
             }
 		    public int GetTrackNumber()
             {
@@ -101,7 +102,7 @@ namespace ERIShArp.File
             }
 	    }
 
-	    public struct	SEQUENCE_DELTA
+	    public class SEQUENCE_DELTA
 	    {
 		    public uint	dwFrameIndex ;
 		    public uint	dwDuration ;
@@ -138,11 +139,12 @@ namespace ERIShArp.File
     
 	    public ERIFile()
         {
-            throw new NotImplementedException();
+            m_dwSeqLength = 0;
+            m_pSequence = null;
         }
 	    ~ERIFile()
         {
-            throw new NotImplementedException();
+            if (m_pSequence != null) m_pSequence = null;
         }
 
 	    public enum	OpenType
@@ -152,8 +154,20 @@ namespace ERIShArp.File
 		    otOpenStream,		
 		    otOpenImageData		
 	    } ;
-	    public void Open( Stream pFile, OpenType type = OpenType.otOpenImageData )
+	    public void Open( EMCFile pFile, OpenType type = OpenType.otOpenImageData )
         {
+            m_fdwReadMask = 0;
+            m_dwSeqLength = 0;
+            if (m_pSequence != null)
+            {
+                m_pSequence = null;
+            }
+            base.Open(pFile);
+            if (type == OpenType.otOpenRoot)
+                return;
+
+            DescendRecord(new ulong[] { BitConverter.ToUInt64(System.Text.Encoding.ASCII.GetBytes("Header  "), 0) });
+            DescendRecord(new ulong[] { BitConverter.ToUInt64(System.Text.Encoding.ASCII.GetBytes("FileHdr "), 0) });
             throw new NotImplementedException();
         }
 	    public SEQUENCE_DELTA[] GetSequenceTable( uint[] pdwLength ) 

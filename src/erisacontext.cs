@@ -245,7 +245,7 @@ namespace ERIShArp.Context
         public short wSymbol;
     }
 
-    public struct ERISA_PROB_MODEL
+    public class ERISA_PROB_MODEL
     {
         public uint dwTotalCount;
         public uint dwSymbolSorts;

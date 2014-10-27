@@ -76,8 +76,8 @@ namespace ERIShArp.File
             public ulong qwBasePos;
             public RECORD_HEADER rechdr;		
 	    }
-	    protected Stream	m_pFile ;
-	    protected Stream	m_pOwnFile ;
+        protected EMCFile m_pFile;
+        protected EMCFile m_pOwnFile;
 	    protected RECORD_INFO 	m_pRecord ;
 	    protected FILE_HEADER		m_fhHeader ;
 
@@ -86,18 +86,18 @@ namespace ERIShArp.File
         /// </summary>
 	    protected static byte[]	m_cDefSignature = { (byte)'E', (byte)'n', (byte)'t', (byte)'i', (byte)'s', 0x1A, 0, 0 };
 
-	    public void Open( Stream pfile, FILE_HEADER pfhHeader = null)
+        public void Open(EMCFile pfile, FILE_HEADER pfhHeader = null)
         {
             Close();
             ESLAssert(pfile != null);
             m_pFile = pfile;
-            if ((pfile.Length == 0) && (pfhHeader != null))
+            if ((pfile.GetLength() == 0) && (pfhHeader != null))
             {
                 m_pFile.Write(pfhHeader);
                 m_pRecord = new RECORD_INFO();
                 m_pRecord.pParent = null;
                 m_pRecord.dwWriteFlag = 1;
-                m_pRecord.qwBasePos = (ulong)m_pFile.Position;
+                m_pRecord.qwBasePos = (ulong)m_pFile.GetLargePosition();
                 m_pRecord.rechdr.nRecordID = 0;
                 m_pRecord.rechdr.nRecLength = 0;
             }
@@ -116,6 +116,7 @@ namespace ERIShArp.File
                 m_pRecord.rechdr.nRecLength = m_pFile.GetLargeLength() - m_pRecord.qwBasePos;
             }
         }
+
 	    public void Close()
         {
             if (m_pFile != null)
@@ -131,7 +132,7 @@ namespace ERIShArp.File
                 RECORD_INFO pParent = m_pRecord.pParent;
                 m_pRecord = pParent;
             }
-            if (m_pOwnFile != null) m_pOwnFile.Dispose();
+            if (m_pOwnFile != null) m_pOwnFile.Close();
             m_pFile = null;
             m_pOwnFile = null;
         }
@@ -139,7 +140,7 @@ namespace ERIShArp.File
         {
             EMCFile pDupFile = new EMCFile();
             pDupFile.m_pFile = pDupFile.m_pOwnFile = m_pFile;
-            pDupFile.m_pFile.SeekLarge(m_pFile.GetLargePosition(), SeekOrigin.Begin);
+            pDupFile.m_pFile.SeekLarge((long)m_pFile.GetLargePosition(), SeekOrigin.Begin);
             pDupFile.m_fhHeader = m_fhHeader.Clone();
 
             pDupFile.m_pRecord = null;
@@ -169,7 +170,7 @@ namespace ERIShArp.File
             }
             return pDupFile;
         }
-	    public Stream GetOriginalFile()
+	    public EMCFile GetOriginalFile()
 		{
 			return	m_pFile ;
 		}
@@ -201,9 +202,9 @@ namespace ERIShArp.File
             }
         }
 
-        public virtual void DescendRecord(uint[] pRecID = null)
+        public virtual void DescendRecord(ulong[] pRecID = null)
         {
-            if (m_pFile.Position == m_pFile.Length)   //creation
+            if (m_pFile.GetPosition() == m_pFile.GetLength())   //creation
             {
                 ESLAssert(pRecID != null);
                 RECORD_HEADER rechdr;
@@ -227,7 +228,7 @@ namespace ERIShArp.File
                         break;
                     if (pRecID[0] == rechdr.nRecordID)
                         break;
-                    m_pFile.SeekLarge(rechdr.nRecLength, SeekOrigin.Current);
+                    m_pFile.SeekLarge((long)rechdr.nRecLength, SeekOrigin.Current);
                 }
                 RECORD_INFO pRec = new RECORD_INFO();
                 pRec.pParent = m_pRecord;
@@ -248,13 +249,14 @@ namespace ERIShArp.File
             {
                 if (m_pRecord.dwWriteFlag != 0)
                 {
-                    ESLAssert(m_pFile.CanWrite);
+                    ESLAssert((m_pFile is PhysicalFile) && ((PhysicalFile)m_pFile).Writeable);
+
                     ulong nPos = GetLargePosition();
                     if (nPos > m_pRecord.rechdr.nRecLength)
                     {
                         m_pRecord.rechdr.nRecLength = nPos;
                     }
-                    m_pFile.SeekLarge(m_pRecord.qwBasePos - 16, SeekOrigin.Begin);
+                    m_pFile.SeekLarge((long)(m_pRecord.qwBasePos - 16), SeekOrigin.Begin);
                     m_pFile.Write(m_pRecord.rechdr);
                 }
             }
@@ -302,7 +304,8 @@ namespace ERIShArp.File
             {
                 nBytes = 0;
             }
-            return (uint)m_pFile.Read(ptrBuffer, 0, (int)nBytes);
+
+            return m_pFile.Read(ptrBuffer,nBytes);
         }
 	    public virtual uint Write( byte[] ptrBuffer, uint nBytes )
         {
@@ -358,7 +361,7 @@ namespace ERIShArp.File
                 }
             }
 
-            return m_pFile.SeekLarge((ulong)((long)nOffsetPos + (long)m_pRecord.qwBasePos), SeekOrigin.Begin) - m_pRecord.qwBasePos;
+            return m_pFile.SeekLarge((long)((long)nOffsetPos + (long)m_pRecord.qwBasePos), SeekOrigin.Begin) - m_pRecord.qwBasePos;
         }
 	    public virtual uint Seek( int nOffsetPos, SeekOrigin fSeekFrom )
         {
@@ -375,6 +378,33 @@ namespace ERIShArp.File
 	    public virtual void SetEndOfFile()
         {
             throw new NotImplementedException();
+        }
+
+        public void Write(EMCFile.FILE_HEADER fh)
+        {
+            //this function is not present in the original version.
+            throw new NotImplementedException();
+        }
+
+        public void Write(RECORD_HEADER rh)
+        {
+            //this functions is not present in the original version.
+            throw new NotImplementedException();
+        }
+
+        public FILE_HEADER ReadEMCFileHeader()
+        {
+            EMCFile.FILE_HEADER result = new EMCFile.FILE_HEADER();
+            result.cHeader = new byte[8];
+            result.cFormatDesc = new byte[0x30];
+            byte[] buffer = new byte[4];
+            if (Read(result.cHeader, 8) != 8) throw new EndOfStreamException();
+            if (Read(buffer, 4) != 4) throw new EndOfStreamException();
+            result.dwFileID = BitConverter.ToUInt32(buffer, 0);
+            if (Read(buffer, 4) != 4) throw new EndOfStreamException();
+            result.dwReserved = BitConverter.ToUInt32(buffer, 0);
+            if (Read(result.cFormatDesc, 0x30) != 0x30) throw new EndOfStreamException();
+            return result;
         }
 
         protected static void ESLAssert(bool condition)

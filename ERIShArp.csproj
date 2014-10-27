@@ -51,6 +51,7 @@
     <Compile Include="src\File\ERIFile.cs" />
     <Compile Include="src\File\ERISAArchive.cs" />
     <Compile Include="src\File\ERISAArchiveList.cs" />
+    <Compile Include="src\File\PhysicalFile.cs" />
     <Compile Include="src\Image\ERISADecoder.cs" />
     <Compile Include="src\Image\ERISAEncoder.cs" />
     <Compile Include="src\Play\ERIAnimation.cs" />

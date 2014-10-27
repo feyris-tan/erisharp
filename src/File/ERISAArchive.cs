@@ -199,10 +199,10 @@ namespace ERIShArp.File
 	    protected byte[]					m_bufCRC;	
 	    protected int						m_iCRC ;
 	    
-        public void Open ( Stream pfile, EDirectory pRootDir = null )
+        public void Open ( EMCFile pfile, EDirectory pRootDir = null )
         {
             Close();
-            if ((pfile.Length == 0) && (pRootDir != null))
+            if ((pfile.GetLength() == 0) && (pRootDir != null))
             {
                 FILE_HEADER pfhHeader = null;
                 FILE_HEADER fhHeader = new FILE_HEADER();
@@ -252,7 +252,7 @@ namespace ERIShArp.File
             base.Close();
         }
 
-	    protected virtual void DescendRecord( uint[] pRecID = null )
+	    protected virtual void DescendRecord( ulong[] pRecID = null )
         {
             base.DescendRecord(pRecID);
         }
