@@ -202,7 +202,7 @@ namespace ERIShArp.File
             }
         }
 
-        public virtual void DescendRecord(ulong[] pRecID = null)
+        public virtual bool DescendRecord(ulong[] pRecID = null)
         {
             if (m_pFile.GetPosition() == m_pFile.GetLength())   //creation
             {
@@ -223,7 +223,14 @@ namespace ERIShArp.File
                 RECORD_HEADER rechdr;
                 for (; ; )
                 {
-                    rechdr = ReadRecordHeader();
+                    try
+                    {
+                        rechdr = ReadRecordHeader();
+                    }
+                    catch (EndOfStreamException)
+                    {
+                        return true;
+                    }
                     if (pRecID == null)
                         break;
                     if (pRecID[0] == rechdr.nRecordID)
@@ -242,33 +249,34 @@ namespace ERIShArp.File
                     pRec.rechdr.nRecLength = m_pFile.GetLargeLength() - pRec.qwBasePos;
                 }
             }
+            return false;
         }
 	    public virtual void AscendRecord()
         {
-            if (m_pRecord != null)
-            {
-                if (m_pRecord.dwWriteFlag != 0)
+                if (m_pRecord != null)
                 {
-                    ESLAssert((m_pFile is PhysicalFile) && ((PhysicalFile)m_pFile).Writeable);
-
-                    ulong nPos = GetLargePosition();
-                    if (nPos > m_pRecord.rechdr.nRecLength)
+                    if (m_pRecord.dwWriteFlag != 0)
                     {
-                        m_pRecord.rechdr.nRecLength = nPos;
-                    }
-                    m_pFile.SeekLarge((long)(m_pRecord.qwBasePos - 16), SeekOrigin.Begin);
-                    m_pFile.Write(m_pRecord.rechdr);
-                }
-            }
-            SeekLarge((long)GetLargeLength(), SeekOrigin.Begin);
+                        ESLAssert((m_pFile is PhysicalFile) && ((PhysicalFile)m_pFile).Writeable);
 
-            RECORD_INFO pRec = m_pRecord;
-            m_pRecord = m_pRecord.pParent;
+                        ulong nPos = GetLargePosition();
+                        if (nPos > m_pRecord.rechdr.nRecLength)
+                        {
+                            m_pRecord.rechdr.nRecLength = nPos;
+                        }
+                        m_pFile.SeekLarge((long)(m_pRecord.qwBasePos - 16), SeekOrigin.Begin);
+                        m_pFile.Write(m_pRecord.rechdr);
+                    }
+                    SeekLarge((long)GetLargeLength(), SeekOrigin.Begin);
+                    RECORD_INFO pRec = m_pRecord;
+                    m_pRecord = m_pRecord.pParent;
+                    pRec = null;
+                }
         }
 
 	    public ulong GetRecordID()
 		{
-            if (m_pRecord != null) throw new Exception();
+            if (m_pRecord == null) throw new Exception();
             return m_pRecord.rechdr.nRecordID;
             
 		}
@@ -369,7 +377,10 @@ namespace ERIShArp.File
         }
 	    public virtual ulong GetLargePosition()
         {
-            return m_pFile.GetLargeLength() - m_pRecord.qwBasePos;
+            ESLAssert(m_pFile != null);
+            ESLAssert(m_pRecord != null);
+
+            return m_pFile.GetLargePosition() - m_pRecord.qwBasePos;
         }
 	    public virtual uint GetPosition()
         {

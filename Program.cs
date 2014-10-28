@@ -14,12 +14,12 @@ namespace ERIShArp
             arc.Open(new PhysicalFile(System.IO.File.OpenRead(args[0])));
             ERISAArchive.EDirectory files = arc.ReferFileEntries();
 
-            EMCFile test = null;
+            ERIFile test = null;
             foreach (KeyValuePair<string, ERISAArchive.FILE_INFO> file in files)
             {
-                test = arc.OpenFileObject(file.Key, 0);
-                ERIFile eri = new ERIFile();
-                eri.Open(test);
+                test = new ERIFile();
+                test.Open(arc.OpenFileObject(file.Key, 0));
+                test.Close();  
             }
             arc.Close();
         }
