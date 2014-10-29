@@ -367,7 +367,35 @@ namespace ERIShArp.Context
 
         public void PrepareToDecodeERINACode(uint dwFlags = (uint)ERINAEncodingFlag.efERINAOrder1)
         {
-            throw new NotImplementedException();
+            int i;
+            if (m_ppHuffmanTree == null)
+            {
+                m_ppHuffmanTree = new ERINA_HUFFMAN_TREE[0x101];
+                for (i = 0; i < 0x101; i++)
+                {
+                    m_ppHuffmanTree[i] = new ERINA_HUFFMAN_TREE();
+                }
+            }
+            m_dwERINAFlags = dwFlags;
+            m_nLength = 0;
+            if (dwFlags == (uint)ERINAEncodingFlag.efERINAOrder0)
+            {
+                m_ppHuffmanTree[0].Initalize();
+                m_ppHuffmanTree[0x100].Initalize();
+                for (i = 1; i < 0x100; i++)
+                {
+                    m_ppHuffmanTree[i] = m_ppHuffmanTree[0];
+                }
+            }
+            else
+            {
+                for (i = 0; i < 0x101; i++)
+                {
+                    m_ppHuffmanTree[i].Initalize();
+                }
+            }
+            m_pLastHuffmanTree = m_ppHuffmanTree[0];
+            m_pfnDecodeSymbolBytes = DecodeERINACodeBytes;
         }
 
         public int GetHuffmanCode(ERINA_HUFFMAN_TREE tree)

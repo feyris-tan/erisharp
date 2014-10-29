@@ -120,19 +120,19 @@ namespace ERIShArp.File
 		    rmSequenceTable	= 0x00000080
 	    }
 
-	    uint			m_fdwReadMask ;
+	    public uint			m_fdwReadMask ;
 
-	    ERI_FILE_HEADER	m_FileHeader ;
-	    ERI_INFO_HEADER	m_PreviewInfo ;
-	    ERI_INFO_HEADER	m_InfoHeader ;
-	    MIO_INFO_HEADER	m_MIOInfHdr ;
+        public ERI_FILE_HEADER m_FileHeader;
+        public ERI_INFO_HEADER m_PreviewInfo;
+        public ERI_INFO_HEADER m_InfoHeader;
+        public MIO_INFO_HEADER m_MIOInfHdr;
 
         /// <summary>
         /// 0x100 entries
         /// </summary>
-	    uint[]		m_PaletteTable;
-	    string		m_wstrCopyright ;
-	    string		m_wstrDescription ;
+        public uint[] m_PaletteTable;
+        public string m_wstrCopyright;
+        public string m_wstrDescription;
 
 	    protected uint				m_dwSeqLength ;
 	    protected SEQUENCE_DELTA[]	m_pSequence ;

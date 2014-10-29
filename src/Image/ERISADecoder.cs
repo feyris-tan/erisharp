@@ -70,7 +70,30 @@ namespace ERIShArp.Image
 
         public ERISADecoder()
         {
-            throw new NotImplementedException();
+            m_ptrDstBlock = null;
+            m_ptrOperations = null;
+            m_ptrColumnBuf = null;
+            m_ptrLineBuf = null;
+            m_ptrDecodeBuf = null;
+            m_ptrArrangeBuf = null;
+            m_pArrangeTable = new int[4];
+            m_ptrVertBufLOT = null;
+            m_ptrHorzBufLOT = null;
+            m_ptrBlocksetBuf = new float[16];
+            m_ptrMatrixBuf = null;
+            m_ptrIQParamBuf = null;
+            m_ptrIQParamTable = null;
+            m_ptrBlockLineBuf = null;
+            m_ptrImageBuf = null;
+            m_ptrYUVImage = null;
+            m_ptrMovingVector = null;
+            m_ptrMoveVecFlags = null;
+            m_ptrMovePrevBlocks = null;
+            m_pPrevImageRef = null;
+            m_pNextImageRef = null;
+            m_pFilterImageBuf = null;
+            m_pHuffmanTree = null;
+            m_pProbERISA = null;
         }
 
         ~ERISADecoder()

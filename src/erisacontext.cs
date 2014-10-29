@@ -12,10 +12,10 @@ namespace ERIShArp.Context
         public uint m_child_code;
     }
 
-    public struct ERINA_HUFFMAN_TREE
+    public class ERINA_HUFFMAN_TREE
     {
         /// <summary>
-        /// 0x201 elements
+        /// 0x201 elements (8 bytes in size)
         /// </summary>
         public ERINA_HUFFMAN_NODE[] m_hnTree;
         /// <summary>
@@ -235,6 +235,14 @@ namespace ERIShArp.Context
                     break;
                 }
                 i += 2;
+            }
+        }
+
+        public static uint Size
+        {
+            get
+            {
+                return ((0x201 * 8) + (0x100 * 4) + 4 + 4);
             }
         }
     }

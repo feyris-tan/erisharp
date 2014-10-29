@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ERIShArp.File;
+using ERIShArp.Context;
+using ERIShArp.Image;
+using System.Drawing;
 
 namespace ERIShArp
 {
@@ -19,6 +22,12 @@ namespace ERIShArp
             {
                 test = new ERIFile();
                 test.Open(arc.OpenFileObject(file.Key, 0));
+                ERISADecodeContext ctx = new ERISADecodeContext((uint)file.Value.nBytes);
+                ctx.AttachInputFile(test);
+                ERISADecoder decoder = new ERISADecoder();
+                decoder.Initalize(test.m_InfoHeader);
+                Bitmap target = new Bitmap(test.m_InfoHeader.nImageWidth, test.m_InfoHeader.nImageHeight);
+                decoder.DecodeImage(target, ctx);
                 test.Close();  
             }
             arc.Close();
