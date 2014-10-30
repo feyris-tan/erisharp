@@ -32,7 +32,7 @@ namespace ERIShArp.Image
         /// <summary>
         /// 4 elements
         /// </summary>
-        protected int[] m_pArrangeTable;	
+        protected IntPointer[] m_pArrangeTable;	
 
         protected uint m_nBlocksetCount;
         protected float[] m_ptrVertBufLOT;
@@ -76,7 +76,7 @@ namespace ERIShArp.Image
             m_ptrLineBuf = null;
             m_ptrDecodeBuf = null;
             m_ptrArrangeBuf = null;
-            m_pArrangeTable = new int[4];
+            m_pArrangeTable = new IntPointer[4];
             m_ptrVertBufLOT = null;
             m_ptrHorzBufLOT = null;
             m_ptrBlocksetBuf = new float[16];
@@ -98,7 +98,7 @@ namespace ERIShArp.Image
 
         ~ERISADecoder()
         {
-            throw new NotImplementedException();
+            Delete();
         }
 
         public const uint dfTopDown = 0x0001;
@@ -111,12 +111,256 @@ namespace ERIShArp.Image
 
         public virtual void Initalize(ERI_INFO_HEADER infhdr)
         {
-            throw new NotImplementedException();
+            Delete();
+            m_eihInfo = infhdr;
+            if (m_eihInfo.fdwTransformation == Constants.CVTYPE_LOSSLESS_ERI)
+            {
+                if ((m_eihInfo.dwArchitecture != Constants.ERI_RUNLENGTH_GAMMA) && (m_eihInfo.dwArchitecture != Constants.ERI_RUNLENGTH_HUFFMAN) && (m_eihInfo.dwArchitecture != Constants.ERISA_NEMESIS_CODE))
+                {
+                    throw new Exception();
+                }
+                switch ((m_eihInfo.fdwFormatType & Constants.ERI_TYPE_MASK))
+                {
+                    case Constants.ERI_RGB_IMAGE:
+                        if (m_eihInfo.dwBitsPerPixel <= 8)
+                            m_nChannelCount = 1;
+                        else if ((m_eihInfo.fdwFormatType & Constants.ERI_WITH_ALPHA) == 0)
+                            m_nChannelCount = 3;
+                        else
+                            m_nChannelCount = 4;
+                        break;
+                    case Constants.ERI_GRAY_IMAGE:
+                        m_nChannelCount = 1;
+                        break;
+                    default:
+                        throw new Exception();
+                }
+                if (m_eihInfo.dwBlockingDegree == 0)
+                {
+                    throw new Exception();
+                }
+                m_nBlockSize = (uint)((int)1 << (int)m_eihInfo.dwBlockingDegree);
+                m_nBlockArea = (uint)((int)1 << (int)(m_eihInfo.dwBlockingDegree * 2));
+                m_nBlockSamples = m_nBlockArea * m_nChannelCount;
+                m_nWidthBlocks = (uint)((int)(m_eihInfo.nImageWidth + m_nBlockSize - 1) >> (int)(m_eihInfo.dwBlockingDegree));
+                if (m_eihInfo.nImageHeight < 0)
+                {
+                    m_nHeightBlocks = (uint)-m_eihInfo.nImageHeight;
+                }
+                else
+                {
+                    m_nHeightBlocks = (uint)m_eihInfo.nImageHeight;
+                }
+                m_nHeightBlocks = (uint)((int)(m_nHeightBlocks + m_nBlockSize - 1) >> (int)m_eihInfo.dwBlockingDegree);
+
+                m_ptrOperations = new byte[m_nWidthBlocks * m_nHeightBlocks];
+                m_ptrColumnBuf = new byte[m_nBlockSize * m_nChannelCount];
+                m_ptrLineBuf = new byte[m_nChannelCount * ((int)m_nWidthBlocks << (int)m_eihInfo.dwBlockingDegree)];
+                m_ptrDecodeBuf = new byte[m_nBlockSamples];
+                m_ptrArrangeBuf = new byte[m_nBlockSamples];
+
+                if ((m_ptrOperations == null) || (m_ptrColumnBuf == null) || (m_ptrLineBuf == null) || (m_ptrDecodeBuf == null) || (m_ptrArrangeBuf == null))
+                {
+                    throw new Exception();
+                }
+                if (m_eihInfo.dwVersion == 0x00020100)
+                {
+                    m_fEnhancedMode = 0;
+                    InitalizeArrangeTable();
+                }
+                else if (m_eihInfo.dwVersion == 0x00020200)
+                {
+                    m_fEnhancedMode = 2;
+                    InitalizeArrangeTable();
+                    if (m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_HUFFMAN)
+                    {
+                        m_pHuffmanTree = new ERINA_HUFFMAN_TREE();
+                    }
+                    else if (m_eihInfo.dwArchitecture == Constants.ERISA_NEMESIS_CODE)
+                    {
+                        m_pProbERISA = new ERISA_PROB_MODEL();
+                    }
+                }
+                else
+                {
+                    throw new Exception();
+                }
+            }
+            else if ((m_eihInfo.fdwTransformation == Constants.CVTYPE_LOT_ERI) || (m_eihInfo.fdwTransformation == Constants.CVTYPE_LOT_ERI))
+            {
+                if ((m_eihInfo.dwArchitecture != Constants.ERI_RUNLENGTH_GAMMA) && (m_eihInfo.dwArchitecture != Constants.ERI_RUNLENGTH_HUFFMAN) && (m_eihInfo.dwArchitecture != Constants.ERISA_NEMESIS_CODE))
+                {
+                    throw new Exception();
+                }
+                switch ((m_eihInfo.fdwFormatType & Constants.ERI_TYPE_MASK))
+                {
+                    case Constants.ERI_RGB_IMAGE:
+                        if (m_eihInfo.dwBitsPerPixel <= 8)
+                            m_nChannelCount = 1;
+                        else if ((m_eihInfo.fdwFormatType & Constants.ERI_WITH_ALPHA) == 0)
+                            m_nChannelCount = 3;
+                        else
+                            m_nChannelCount = 4;
+                        break;
+                    case Constants.ERI_GRAY_IMAGE:
+                        m_nChannelCount = 1;
+                        break;
+                    default:
+                        throw new Exception();
+                }
+                if (m_eihInfo.dwBlockingDegree != 3)
+                {
+                    throw new Exception();
+                }
+                m_nBlockSize = (uint)(1 << (int)m_eihInfo.dwBlockingDegree);
+                m_nBlockArea = (uint)(1 << (int)(m_eihInfo.dwBlockingDegree * 2));
+                m_nBlockSamples = m_nBlockArea * m_nChannelCount;
+                if (m_eihInfo.fdwTransformation == Constants.CVTYPE_LOT_ERI)
+                {
+                    m_nWidthBlocks = (uint)((m_eihInfo.nImageWidth + m_nBlockSize * 2 - 1) >> (int)(m_eihInfo.dwBlockingDegree + 1));
+                    if (m_eihInfo.nImageHeight < 0)
+                    {
+                        m_nHeightBlocks = (uint)-m_eihInfo.nImageHeight;
+                    }
+                    else
+                    {
+                        m_nHeightBlocks = (uint)m_eihInfo.nImageHeight;
+                    }
+                    m_nHeightBlocks = (m_nHeightBlocks + m_nBlockSize * 2 - 1) >> (int)(m_eihInfo.dwBlockingDegree + 1);
+                    m_nWidthBlocks += 1;
+                    m_nHeightBlocks += 1;
+                    if (m_eihInfo.dwSamplingFlags == Constants.ERISF_YUV_4_4_4)
+                    {
+                        m_nBlocksetCount = m_nChannelCount * 4;
+                    }
+                    else if (m_eihInfo.dwSamplingFlags == Constants.ERISF_YUV_4_1_1)
+                    {
+                        switch (m_nChannelCount)
+                        {
+                            case 1:
+                                m_nBlocksetCount = 4;
+                                break;
+                            case 3:
+                                m_nBlocksetCount = 6;
+                                break;
+                            case 4:
+                                m_nBlocksetCount = 10;
+                                break;
+                            default:
+                                throw new Exception();
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                }
+                else
+                {
+                    m_nWidthBlocks = (uint)(((int)(m_eihInfo.nImageWidth + (m_nBlockSize * 2 - 1))) >> (int)(m_eihInfo.dwBlockingDegree + 1));
+                    if (m_eihInfo.nImageHeight < 0)
+                    {
+                        m_nHeightBlocks = (uint)-m_eihInfo.nImageHeight;
+                    }
+                    else
+                    {
+                        m_nHeightBlocks = (uint)m_eihInfo.nImageHeight;
+                    }
+                    m_nHeightBlocks = (uint)((m_nHeightBlocks + (m_nBlockSize * 2 - 1))) >> (int)(m_eihInfo.dwBlockingDegree + 1);
+                    //
+                    if (m_eihInfo.dwSamplingFlags == Constants.ERISF_YUV_4_4_4)
+                    {
+                        m_nBlocksetCount = m_nChannelCount * 4;
+                    }
+                    else if (m_eihInfo.dwSamplingFlags == Constants.ERISF_YUV_4_1_1)
+                    {
+                        switch (m_nChannelCount)
+                        {
+                            case 1:
+                                m_nBlocksetCount = 4;
+                                break;
+                            case 3:
+                                m_nBlocksetCount = 6;
+                                break;
+                            case 4:
+                                m_nBlocksetCount = 10;
+                                break;
+                            default:
+                                throw new Exception();
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception();
+                    }
+                }
+                m_ptrDecodeBuf = new byte[m_nBlockArea * 16 * 1];
+                m_ptrVertBufLOT = new float[m_nBlockSamples * 2 * m_nWidthBlocks];
+                m_ptrHorzBufLOT = new float[m_nBlockSamples * 2];
+                m_ptrBlocksetBuf = new float[m_nBlockSamples * 2];
+                m_ptrBlocksetBuf[0] = 1;
+                m_ptrMatrixBuf = new float[m_nBlockArea * 16];
+                m_ptrIQParamBuf = new float[m_nBlockArea * 2];
+                m_ptrIQParamTable = new byte[m_nBlockArea * 2];
+                uint dwTotalBlocks = m_nWidthBlocks * m_nHeightBlocks;
+                m_ptrImageBuf = new byte[dwTotalBlocks * m_nBlockArea * m_nBlocksetCount];
+                m_ptrMovingVector = new byte[dwTotalBlocks * 4 * 1];
+                m_ptrMoveVecFlags = new byte[dwTotalBlocks * 1];
+                m_ptrMovePrevBlocks = new byte[dwTotalBlocks * 4];
+                m_pPrevImageRef = null;
+                for (int i = 1; i < 16; i++)
+                {
+                    m_ptrBlocksetBuf[i] = m_ptrBlocksetBuf[0] + (m_nBlockArea * i);
+                }
+                m_nYUVPixelBytes = m_nChannelCount;
+                if (m_nYUVPixelBytes == 3)
+                {
+                    m_nYUVPixelBytes = 4;
+                }
+                m_nYUVPixelBytes = (uint)(((m_nYUVPixelBytes * m_nWidthBlocks * m_nBlockSize * 2) + 0x0F) & (~0x0F));
+                uint nYUVImageSIze = (uint)(m_nYUVLineBytes * m_nHeightBlocks * m_nBlockSize * 2);
+                m_ptrBlockLineBuf = new byte[m_nYUVLineBytes * 16];
+                m_ptrYUVImage = new byte[nYUVImageSIze];
+                if ((m_ptrDecodeBuf == null) || (m_ptrVertBufLOT == null) || (m_ptrHorzBufLOT == null) || (m_ptrBlocksetBuf == null) || (m_ptrMatrixBuf == null) || (m_ptrIQParamBuf == null) || (m_ptrIQParamTable == null) || (m_ptrOperations == null) || (m_ptrImageBuf == null) || (m_ptrMovingVector == null) || (m_ptrMovePrevBlocks == null))
+                {
+                    throw new Exception();
+                }
+                InitalizeZigZagTable();
+                m_pHuffmanTree = new ERINA_HUFFMAN_TREE();
+                m_pProbERISA = new ERISA_PROB_MODEL();
+            }
+            else
+            {
+                throw new Exception();
+            }
         }
 
         public virtual void Delete()
         {
-            throw new NotImplementedException();
+            m_ptrOperations = null;
+            m_ptrColumnBuf = null;
+            m_ptrLineBuf = null;
+            m_ptrDecodeBuf = null;
+            m_ptrArrangeBuf = null;
+            m_ptrVertBufLOT = null;
+            m_ptrHorzBufLOT = null;
+            m_ptrMatrixBuf = null;
+            m_ptrIQParamBuf = null;
+            m_ptrIQParamTable = null;
+            m_ptrBlockLineBuf = null;
+            m_ptrImageBuf = null;
+            m_ptrYUVImage = null;
+            m_ptrMovingVector = null;
+            m_ptrMoveVecFlags = null;
+            m_ptrMovePrevBlocks = null;
+            if (m_pHuffmanTree != null)
+            {
+                m_pHuffmanTree = null;
+            }
+            if (m_pProbERISA != null)
+            {
+                m_pProbERISA = null;
+            }
         }
 
         public virtual void DecodeImage(Bitmap dstimginf, ERISADecodeContext context,uint fdwFlags = dfTopDown)
@@ -151,7 +395,59 @@ namespace ERIShArp.Image
 
         protected void InitalizeArrangeTable()
         {
-            throw new NotImplementedException();
+            uint i, j, k, l, m;
+            IntPointer ptrTable = new IntPointer(m_nBlockSamples * 4);
+            IntPointer ptrNext;
+            m_pArrangeTable[0] = ptrTable;
+            m_pArrangeTable[1] = new IntPointer(ptrTable.Data, ptrTable.Offset + (m_nBlockSamples));
+            m_pArrangeTable[2] = new IntPointer(ptrTable.Data, ptrTable.Offset + (m_nBlockSamples * 2));
+            m_pArrangeTable[3] = new IntPointer(ptrTable.Data, ptrTable.Offset + (m_nBlockSamples * 3));
+
+            ptrNext = m_pArrangeTable[0].Clone();
+            for (i = 0; i < m_nBlockSamples; i++)
+            {
+                ptrNext.Data[ptrNext.Offset + i] = (int)i;
+            }
+            ptrNext = m_pArrangeTable[1].Clone();
+            l = 0;
+            for (i = 0; i < m_nChannelCount; i++)
+            {
+                for (j = 0; j < m_nBlockSize; j++)
+                {
+                    m = l + j;
+                    for (k = 0; k < m_nBlockSize; k++)
+                    {
+                        ptrNext.Data[ptrNext.Offset++] = (int)m;
+                        m += m_nBlockSize;
+                    }
+                }
+                l += m_nBlockArea;
+            }
+            ptrNext = m_pArrangeTable[2].Clone();
+            for (i = 0; i < m_nBlockArea; i++)
+            {
+                k = i;
+                for (j = 0; j < m_nChannelCount; j++)
+                {
+                    ptrNext.Data[ptrNext.Offset++] = (int)k;
+                    k += m_nBlockArea;
+                }
+            }
+            ptrNext = m_pArrangeTable[3].Clone();
+            for (i = 0; i < m_nBlockSize; i++)
+            {
+                l = i;
+                for (j = 0; j < m_nBlockSize; j++)
+                {
+                    m = l;
+                    l += m_nBlockSize;
+                    for (k = 0; k < m_nChannelCount; k++)
+                    {
+                        ptrNext.Data[ptrNext.Offset++] = (int)m;
+                        m += m_nBlockArea;
+                    }
+                }
+            }
         }
 
         protected void PerformOperation(uint dwOpCode, uint nAllBlockLines, byte[] pNextLineBuf)

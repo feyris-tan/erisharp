@@ -16,28 +16,28 @@ namespace ERIShArp
         const uint	EFH_CONTAIN_WAVE		=0x00000100;
         const uint	EFH_CONTAIN_SEQUENCE	=0x00000200;
 
-        const uint	ERI_RGB_IMAGE			=0x00000001;
+        public const uint	ERI_RGB_IMAGE			=0x00000001;
         const uint	ERI_RGBA_IMAGE			=0x04000001;
-        const uint	ERI_GRAY_IMAGE			=0x00000002;
-        const uint	ERI_TYPE_MASK			=0x00FFFFFF;
+        public const uint	ERI_GRAY_IMAGE			=0x00000002;
+        public const uint	ERI_TYPE_MASK			=0x00FFFFFF;
         const uint	ERI_WITH_PALETTE		=0x01000000;
         const uint	ERI_USE_CLIPPING		=0x02000000;
-        const uint	ERI_WITH_ALPHA			=0x04000000;
+        public const uint	ERI_WITH_ALPHA			=0x04000000;
         const uint	ERI_SIDE_BY_SIDE		=0x10000000;
 
-        const uint	CVTYPE_LOSSLESS_ERI		=0x03020000;
-        const uint	CVTYPE_DCT_ERI			=0x00000001;
-        const uint	CVTYPE_LOT_ERI			=0x00000005;
+        public const uint	CVTYPE_LOSSLESS_ERI		=0x03020000;
+        public const uint	CVTYPE_DCT_ERI			=0x00000001;
+        public const uint	CVTYPE_LOT_ERI			=0x00000005;
         const uint	CVTYPE_LOT_ERI_MSS		=0x00000105;
 
         const uint	ERI_ARITHMETIC_CODE		=32;
-        const uint	ERI_RUNLENGTH_GAMMA		=0xFFFFFFFF;
-        const uint	ERI_RUNLENGTH_HUFFMAN	=0xFFFFFFFC;
-        const uint	ERISA_NEMESIS_CODE		=0xFFFFFFF0;
+        public const uint	ERI_RUNLENGTH_GAMMA		=0xFFFFFFFF;
+        public const uint	ERI_RUNLENGTH_HUFFMAN	=0xFFFFFFFC;
+        public const uint	ERISA_NEMESIS_CODE		=0xFFFFFFF0;
 
-        const uint	ERISF_YUV_4_4_4			=0x00040404;
-        const uint	ERISF_YUV_4_2_2			=0x00040202;
-        const uint	ERISF_YUV_4_1_1			=0x00040101;
+        public const uint	ERISF_YUV_4_4_4			=0x00040404;
+        public const uint ERISF_YUV_4_2_2 = 0x00040202;
+        public const uint ERISF_YUV_4_1_1 = 0x00040101;
 
         const byte MIO_LEAD_BLOCK	=0x01;
 
