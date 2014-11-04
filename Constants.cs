@@ -57,5 +57,17 @@ namespace ERIShArp
 	    const uint NEMESIS_BUF_MASK	= 0xFFFF;
 	    const uint NEMESIS_INDEX_LIMIT	= 0x100;
 	    const uint NEMESIS_INDEX_MASK	= 0xFF;
+
+        const uint	EIF_RGB_BITMAP		=0x00000001;
+        const uint	EIF_RGBA_BITMAP		=0x04000001;
+        const uint	EIF_GRAY_BITMAP		=0x00000002;
+        const uint	EIF_YUV_BITMAP		=0x00000004;
+        const uint	EIF_HSB_BITMAP		=0x00000006;
+        const uint	EIF_Z_BUFFER_R4		=0x00002005;
+        const uint	EIF_TYPE_MASK		=0x00FFFFFF;
+        const uint	EIF_WITH_PALETTE	=0x01000000;
+        const uint	EIF_WITH_CLIPPING	=0x02000000;
+        const uint	EIF_WITH_ALPHA		=0x04000000;
+        public const uint EIF_SIDE_BY_SIDE = 0x10000000;
     }
 }

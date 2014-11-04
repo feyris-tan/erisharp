@@ -26,7 +26,7 @@ namespace ERIShArp
                 ctx.AttachInputFile(test);
                 ERISADecoder decoder = new ERISADecoder();
                 decoder.Initalize(test.m_InfoHeader);
-                Bitmap target = new Bitmap(test.m_InfoHeader.nImageWidth, test.m_InfoHeader.nImageHeight);
+                EGL_IMAGE_INFO target = new EGL_IMAGE_INFO(test.m_InfoHeader);
                 decoder.DecodeImage(target, ctx);
                 test.Close();  
             }

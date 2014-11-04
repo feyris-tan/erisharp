@@ -83,7 +83,7 @@ namespace ERIShArp.Play
         /// <summary>
         /// 5 entries
         /// </summary>
-	    protected Bitmap[]		m_pDstImage;
+	    protected EGL_IMAGE_INFO[]		m_pDstImage;
         /// <summary>
         /// 5 entries
         /// </summary>
@@ -100,11 +100,11 @@ namespace ERIShArp.Play
 	    protected List<EKeyPoint>			m_listKeyWave ;
 	    protected IntPtr		m_cs ;
 
-        protected virtual Bitmap CreateImageBuffer(uint format, int width, int height, uint bpp)
+        protected virtual EGL_IMAGE_INFO CreateImageBuffer(uint format, int width, int height, uint bpp)
         {
             throw new NotImplementedException();
         }
-	    protected virtual void DeleteImageBuffer( Bitmap peii )
+	    protected virtual void DeleteImageBuffer( EGL_IMAGE_INFO peii )
         {
             throw new NotImplementedException();
         }
@@ -205,7 +205,7 @@ namespace ERIShArp.Play
         {
             throw new NotImplementedException();
         }
-	    public Bitmap GetImageInfo()
+	    public EGL_IMAGE_INFO GetImageInfo()
         {
             throw new NotImplementedException();
         }

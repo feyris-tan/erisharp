@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using ERIShArp.Image;
 
 namespace ERIShArp.Play
 {
@@ -22,7 +23,7 @@ namespace ERIShArp.Play
         {
         }
 
-        public virtual void WriteImageData(Bitmap infImage)
+        public virtual void WriteImageData(EGL_IMAGE_INFO infImage)
         {
         }
 

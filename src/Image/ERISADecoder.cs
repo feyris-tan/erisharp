@@ -54,11 +54,11 @@ namespace ERIShArp.Image
         protected byte[] m_ptrMoveVecFlags;
         protected byte[] m_ptrMovePrevBlocks;	
         protected byte[] m_ptrNextPrevBlocks;
-        protected Bitmap m_pPrevImageRef;
+        protected EGL_IMAGE_INFO m_pPrevImageRef;
         protected int m_dwPrevLineBytes;		
-        protected Bitmap m_pNextImageRef;
+        protected EGL_IMAGE_INFO m_pNextImageRef;
         protected int m_dwNextLineBytes;		
-        protected Bitmap m_pFilterImageBuf;
+        protected EGL_IMAGE_INFO m_pFilterImageBuf;
 
         protected ERINA_HUFFMAN_TREE m_pHuffmanTree;
         protected ERISA_PROB_MODEL m_pProbERISA;
@@ -363,22 +363,45 @@ namespace ERIShArp.Image
             }
         }
 
-        public virtual void DecodeImage(Bitmap dstimginf, ERISADecodeContext context,uint fdwFlags = dfTopDown)
+        public virtual void DecodeImage(EGL_IMAGE_INFO dstimginf, ERISADecodeContext context,uint fdwFlags = dfTopDown)
+        {
+            EGL_IMAGE_INFO imginf = dstimginf;
+            bool fReverse = ((fdwFlags & dfTopDown) != 0);
+            if (m_eihInfo.nImageHeight < 0)
+            {
+                fReverse = !fReverse;
+            }
+            if (fReverse)
+            {
+                imginf.ptrImageArray.Offset = (int)((imginf.ptrImageArray.Offset) + (imginf.dwImageHeight - 1) * imginf.dwBytesPerLine);
+                imginf.dwBytesPerLine = -imginf.dwBytesPerLine;
+            }
+            if ((imginf.fdwFormatType & Constants.EIF_SIDE_BY_SIDE) != 0)
+            {
+                imginf.dwImageWidth *= 2;
+            }
+            if (m_eihInfo.fdwTransformation == Constants.CVTYPE_LOSSLESS_ERI)
+            {
+                DecodeLosslessImage(imginf, context, fdwFlags);
+            }
+            else if ((m_eihInfo.fdwTransformation == Constants.CVTYPE_LOT_ERI) || (m_eihInfo.fdwTransformation == Constants.CVTYPE_DCT_ERI))
+            {
+                DecodeLossyImage(imginf, context, fdwFlags);
+            }
+            throw new Exception();
+        }
+
+        public void SetRefPreviousFrame(EGL_IMAGE_INFO pPrevFrame, EGL_IMAGE_INFO pNextFrame = null)
         {
             throw new NotImplementedException();
         }
 
-        public void SetRefPreviousFrame(Bitmap pPrevFrame, Bitmap pNextFrame = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Bitmap GetFilteredImageBuffer()
+        public EGL_IMAGE_INFO GetFilteredImageBuffer()
         {
             return m_pFilterImageBuf;
         }
 
-        public void SetFilteredImageBuffer(Bitmap pImageBuf)
+        public void SetFilteredImageBuffer(EGL_IMAGE_INFO pImageBuf)
         {
             throw new NotImplementedException();
         }
@@ -388,7 +411,7 @@ namespace ERIShArp.Image
             throw new NotImplementedException();
         }
     
-        protected void DecodeLosslessImage(Bitmap imginf, ERISADecodeContext context, uint fdwFlags)
+        protected void DecodeLosslessImage(EGL_IMAGE_INFO imginf, ERISADecodeContext context, uint fdwFlags)
         {
             throw new NotImplementedException();
         }
@@ -530,7 +553,7 @@ namespace ERIShArp.Image
             throw new NotImplementedException();
         }
 
-        protected void DecodeLossyImage(Bitmap imginf, ERISADecodeContext context, uint fdwFlags)
+        protected void DecodeLossyImage(EGL_IMAGE_INFO imginf, ERISADecodeContext context, uint fdwFlags)
         {
             throw new NotImplementedException();
         }    

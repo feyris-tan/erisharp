@@ -88,11 +88,11 @@ namespace ERIShArp.Play
 	    protected ERISAEncoder 			m_perie2 ;
 	    protected ERISAEncodeContext 	m_pmioc ;
 	    protected MIOEncoder			m_pmioe ;
-	    protected Bitmap 		m_peiiLast ;
-	    protected Bitmap 		m_peiiNext ;
-	    protected Bitmap 		m_peiiBuf ;
+	    protected EGL_IMAGE_INFO 		m_peiiLast ;
+	    protected EGL_IMAGE_INFO 		m_peiiNext ;
+	    protected EGL_IMAGE_INFO 		m_peiiBuf ;
 	    protected uint[]		m_lstEncFlags ;
-	    protected Bitmap[]       m_lstFrameBuf ;	    
+	    protected EGL_IMAGE_INFO[]       m_lstFrameBuf ;	    
 	    protected bool					m_fKeyWaveBlock ;
 	    protected Stream			m_bufWaveBuffer ;
 	    protected uint					m_dwWaveBufSamples ;
@@ -175,7 +175,7 @@ namespace ERIShArp.Play
         {
             throw new NotImplementedException();
         }
-	    public virtual void WritePreviewData( Bitmap eii, uint fdwFlags )
+	    public virtual void WritePreviewData( EGL_IMAGE_INFO eii, uint fdwFlags )
         {
             throw new NotImplementedException();
         }
@@ -183,11 +183,11 @@ namespace ERIShArp.Play
         {
             throw new NotImplementedException();
         }
-	    public void WriteImageData( Bitmap eii, uint fdwFlags )
+	    public void WriteImageData( EGL_IMAGE_INFO eii, uint fdwFlags )
         {
             throw new NotImplementedException();
         }
-	    public virtual void WriteImageData( Bitmap infImage )
+	    public virtual void WriteImageData( EGL_IMAGE_INFO infImage )
         {
             throw new NotImplementedException();
         }
@@ -204,11 +204,11 @@ namespace ERIShArp.Play
         {
             throw new NotImplementedException();
         }
-	    protected Bitmap CreateImageBuffer(ERI_INFO_HEADER eih )
+	    protected EGL_IMAGE_INFO CreateImageBuffer(ERI_INFO_HEADER eih )
         {
             throw new NotImplementedException();
         }
-	    protected void DeleteImageBuffer( Bitmap peii )
+	    protected void DeleteImageBuffer( EGL_IMAGE_INFO peii )
         {
             throw new NotImplementedException();
         }

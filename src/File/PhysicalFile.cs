@@ -57,5 +57,13 @@ namespace ERIShArp.File
         {
             return (ulong)parent.Seek(nOffsetPos, fSeekFrom);
         }
+
+        public double PlaybackProgress
+        {
+            get
+            {
+                return (double)GetLargePosition() / (double)GetLargeLength();
+            }
+        }
     }
 }

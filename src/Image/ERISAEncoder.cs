@@ -143,7 +143,7 @@ namespace ERIShArp.Image
         throw new NotImplementedException();
     }    
 	
-	public virtual void EncodeImage (Bitmap srcimginf, ERISAEncodeContext context, uint fdwFlags = efNormalCmpr)
+	public virtual void EncodeImage (EGL_IMAGE_INFO srcimginf, ERISAEncodeContext context, uint fdwFlags = efNormalCmpr)
 	{
         throw new NotImplementedException();
     }
@@ -158,7 +158,7 @@ namespace ERIShArp.Image
         throw new NotImplementedException();
     }
 
-	public void ProcessMovingVector(Bitmap nextimg, Bitmap previmg, int nAbsMaxDiff, Bitmap ppredimg2 = null )
+	public void ProcessMovingVector(EGL_IMAGE_INFO nextimg, EGL_IMAGE_INFO previmg, int nAbsMaxDiff, EGL_IMAGE_INFO ppredimg2 = null )
     {
         throw new NotImplementedException();
     }
@@ -169,34 +169,34 @@ namespace ERIShArp.Image
         throw new NotImplementedException();
     }
 
-	protected int PredictMovingVector( Bitmap nextimg, Bitmap previmg, int xBlock, int yBlock, Point[] ptMoveVec, int nAbsMaxDiff, double rDeflectBlock, Bitmap ppredimg = null )
+	protected int PredictMovingVector( EGL_IMAGE_INFO nextimg, EGL_IMAGE_INFO previmg, int xBlock, int yBlock, Point[] ptMoveVec, int nAbsMaxDiff, double rDeflectBlock, EGL_IMAGE_INFO ppredimg = null )
     {
         throw new NotImplementedException();
     }
 	
-	protected void SearchMovingVector( Bitmap nextblock, Bitmap predblock, Bitmap nextimg, Bitmap predimg, int xBlock, int yBlock, Point ptMoveVec )
+	protected void SearchMovingVector( EGL_IMAGE_INFO nextblock, EGL_IMAGE_INFO predblock, EGL_IMAGE_INFO nextimg, EGL_IMAGE_INFO predimg, int xBlock, int yBlock, Point ptMoveVec )
     {
         throw new NotImplementedException();
     }
 	
-	protected static int CalcSumDeflectBlock(Bitmap imgblock )
+	protected static int CalcSumDeflectBlock(EGL_IMAGE_INFO imgblock )
     {
         throw new NotImplementedException();
     }
 
 	
-	protected static int CalcSumSqrDifferenceBlock( Bitmap dstimg, Bitmap srcimg )
+	protected static int CalcSumSqrDifferenceBlock( EGL_IMAGE_INFO dstimg, EGL_IMAGE_INFO srcimg )
     {
         throw new NotImplementedException();
     }
 
 	
-	protected static void MakeBlockValueHalf( Bitmap imgblock )
+	protected static void MakeBlockValueHalf( EGL_IMAGE_INFO imgblock )
     {
         throw new NotImplementedException();
     }
 
-	protected void EncodeLosslessImage(Bitmap imginf, ERISAEncodeContext context, uint fdwFlags )
+	protected void EncodeLosslessImage(EGL_IMAGE_INFO imginf, ERISAEncodeContext context, uint fdwFlags )
     {
         throw new NotImplementedException();
     }
@@ -323,7 +323,7 @@ namespace ERIShArp.Image
     }
 
 
-	protected void EncodeLossyImage( Bitmap imginf, ERISAEncodeContext context, uint fdwFlags )
+	protected void EncodeLossyImage( EGL_IMAGE_INFO imginf, ERISAEncodeContext context, uint fdwFlags )
     {
         throw new NotImplementedException();
     }
