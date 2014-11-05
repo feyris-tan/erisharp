@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ERIShArp
 {
-    public class Pointer
+    public class Pointer : IChecksum
     {
         public Pointer(byte[] data, int offset)
         {
@@ -110,6 +110,19 @@ namespace ERIShArp
             get
             {
                 return BitConverter.ToUInt32(Data, Offset);
+            }
+        }
+
+        public ulong Checksum
+        {
+            get 
+            {
+                ulong result = 0;
+                for (int i = 0; i < Data.Length; i++)
+                {
+                    result += (uint)Data[i];
+                }
+                return result;
             }
         }
     }

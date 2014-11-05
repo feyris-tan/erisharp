@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Constants.cs" />
+    <Compile Include="IChecksum.cs" />
     <Compile Include="IntPointer.cs" />
     <Compile Include="Pointer.cs" />
     <Compile Include="Program.cs" />

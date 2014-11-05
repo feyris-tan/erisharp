@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ERIShArp
 {
-    public class IntPointer
+    public class IntPointer : IChecksum
     {
         public IntPointer(uint length)
         {
@@ -53,6 +53,20 @@ namespace ERIShArp
             }
             bw.Flush();
             bw.Close();
+        }
+
+
+        public ulong Checksum
+        {
+            get 
+            {
+                ulong result = 0;
+                for (int i = 0; i < data.Length; i++)
+                {
+                    result += (uint)data[0];
+                }
+                return result;
+            }
         }
     }
 }

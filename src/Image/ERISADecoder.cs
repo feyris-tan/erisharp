@@ -393,7 +393,16 @@ namespace ERIShArp.Image
 
         public void SetRefPreviousFrame(EGL_IMAGE_INFO pPrevFrame, EGL_IMAGE_INFO pNextFrame = null)
         {
-            throw new NotImplementedException();
+            m_pPrevImageRef = pPrevFrame;
+            if (pPrevFrame != null)
+            {
+                m_dwPrevLineBytes = pPrevFrame.dwBytesPerLine;
+            }
+            m_pNextImageRef = pNextFrame;
+            if (pNextFrame != null)
+            {
+                m_dwNextLineBytes = pNextFrame.dwBytesPerLine;
+            }
         }
 
         public EGL_IMAGE_INFO GetFilteredImageBuffer()
@@ -403,12 +412,17 @@ namespace ERIShArp.Image
 
         public void SetFilteredImageBuffer(EGL_IMAGE_INFO pImageBuf)
         {
-            throw new NotImplementedException();
+            m_pFilterImageBuf = pImageBuf;
         }
 
+        /// <summary>
+        /// This Function does absolutely nothing. Yes really, check the original version. decimage.cpp line 534
+        /// </summary>
+        /// <param name="line"></param>
+        /// <param name="column"></param>
+        /// <param name="rect"></param>
         protected virtual void OnDecodedBlock(int line, int column, Rectangle rect)
         {
-            throw new NotImplementedException();
         }
     
         protected void DecodeLosslessImage(EGL_IMAGE_INFO imginf, ERISADecodeContext context, uint fdwFlags)
