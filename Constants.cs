@@ -17,7 +17,7 @@ namespace ERIShArp
         const uint	EFH_CONTAIN_SEQUENCE	=0x00000200;
 
         public const uint	ERI_RGB_IMAGE			=0x00000001;
-        const uint	ERI_RGBA_IMAGE			=0x04000001;
+        public const uint	ERI_RGBA_IMAGE			=0x04000001;
         public const uint	ERI_GRAY_IMAGE			=0x00000002;
         public const uint	ERI_TYPE_MASK			=0x00FFFFFF;
         const uint	ERI_WITH_PALETTE		=0x01000000;

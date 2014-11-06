@@ -156,8 +156,7 @@ namespace ERIShArp.Context
             {
                 if (m_nBufCount == 0)
                 {
-                    m_ptrNextBuf.Data = m_ptrBuffer;
-                    m_ptrNextBuf.Offset = 0;
+                    m_ptrNextBuf = new Pointer(m_ptrBuffer,0);
                     m_nBufCount = ReadNextData(m_ptrBuffer, m_nBufferingSize);
                     if (m_nBufCount == 0)
                     {
@@ -172,7 +171,7 @@ namespace ERIShArp.Context
                     }
                 }
                 m_nIntBufCount = 32;
-                m_dwIntBuffer = m_ptrNextBuf.PeekUInt32;
+                m_dwIntBuffer = m_ptrNextBuf.PeekUInt32Flipped;
                 m_ptrNextBuf += 4;
                 m_nBufCount -= 4;
             }
@@ -181,7 +180,10 @@ namespace ERIShArp.Context
 
         public int GetABit()
         {
-            PrefetchBuffer();
+            if (PrefetchBuffer())
+            {
+                return 1;
+            }
             int nValue = (int)(((short)m_dwIntBuffer) >> 31);
             --m_nIntBufCount;
             m_dwIntBuffer <<= 1;
@@ -193,7 +195,8 @@ namespace ERIShArp.Context
             uint nCode = 0;
             while (n != 0)
             {
-                PrefetchBuffer();
+                if (PrefetchBuffer())
+                    break;
                 int nCopyBits = n;
                 if (nCopyBits > m_nIntBufCount)
                     nCopyBits = m_nIntBufCount;
@@ -217,7 +220,7 @@ namespace ERIShArp.Context
             {
                 return ReadPredecodedCodeBytes(ptrDst, nCount);
             }
-            if (m_pfnDecodeSymbolBytes != null) throw new Exception();
+            ESLAssert(m_pfnDecodeSymbolBytes != null);
             return m_pfnDecodeSymbolBytes(ptrDst, nCount);
         }
 
@@ -234,7 +237,11 @@ namespace ERIShArp.Context
 
         public int GetGammaCode()
         {
-            PrefetchBuffer();
+            if (PrefetchBuffer())
+            {
+                return 0;
+            }
+
             uint dwIntBuf;
             m_nIntBufCount--;
             dwIntBuf = m_dwIntBuffer;
@@ -245,7 +252,10 @@ namespace ERIShArp.Context
             }
 
             int nCode = 0, nBase = 2;
-            PrefetchBuffer();
+            if (PrefetchBuffer())
+            {
+                return 0;
+            }
             if (((~m_dwIntBuffer & 0x55000000) != 0) && (m_nIntBufCount >= 8))
             {
                 int i = (int)((m_dwIntBuffer >> 24) << 1);

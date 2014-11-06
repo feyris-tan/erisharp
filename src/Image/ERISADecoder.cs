@@ -16,7 +16,7 @@ namespace ERIShArp.Image
         protected uint m_nWidthBlocks;
         protected uint m_nHeightBlocks;
 
-        protected byte[] m_ptrDstBlock;
+        protected Pointer m_ptrDstBlock;
         protected int m_nDstLineBytes;
         protected uint m_nDstPixelBytes;
         protected uint m_nDstWidth;			
@@ -25,8 +25,8 @@ namespace ERIShArp.Image
 
         protected int m_fEnhancedMode;		
         protected byte[] m_ptrOperations;		
-        protected byte[] m_ptrColumnBuf;
-        protected byte[] m_ptrLineBuf;
+        protected Pointer m_ptrColumnBuf;
+        protected Pointer m_ptrLineBuf;
         protected byte[] m_ptrDecodeBuf;
         protected byte[] m_ptrArrangeBuf;
         /// <summary>
@@ -154,8 +154,8 @@ namespace ERIShArp.Image
                 m_nHeightBlocks = (uint)((int)(m_nHeightBlocks + m_nBlockSize - 1) >> (int)m_eihInfo.dwBlockingDegree);
 
                 m_ptrOperations = new byte[m_nWidthBlocks * m_nHeightBlocks];
-                m_ptrColumnBuf = new byte[m_nBlockSize * m_nChannelCount];
-                m_ptrLineBuf = new byte[m_nChannelCount * ((int)m_nWidthBlocks << (int)m_eihInfo.dwBlockingDegree)];
+                m_ptrColumnBuf = new Pointer(new byte[m_nBlockSize * m_nChannelCount],0);
+                m_ptrLineBuf = new Pointer(new byte[m_nChannelCount * ((int)m_nWidthBlocks << (int)m_eihInfo.dwBlockingDegree)],0);
                 m_ptrDecodeBuf = new byte[m_nBlockSamples];
                 m_ptrArrangeBuf = new byte[m_nBlockSamples];
 
@@ -427,7 +427,225 @@ namespace ERIShArp.Image
     
         protected void DecodeLosslessImage(EGL_IMAGE_INFO imginf, ERISADecodeContext context, uint fdwFlags)
         {
-            throw new NotImplementedException();
+            uint nERIVersion, fOpTable, fEncodeType, nBitCount;
+            context.FlushBuffer();
+            m_pFilterImageBuf = null;
+            nERIVersion = context.GetNBits(8);
+            fOpTable = context.GetNBits(8);
+            fEncodeType = context.GetNBits(8);
+            nBitCount = context.GetNBits(8);
+            if ((fOpTable != 0) || (fEncodeType & 0xFE) != 0)
+            {
+                throw new Exception();
+            }
+            if (nERIVersion == 1)
+            {
+                if (nBitCount != 0)
+                {
+                    throw new Exception();
+                }
+            }
+            else if (nERIVersion == 8)
+            {
+                if (nBitCount != 8)
+                {
+                    throw new Exception();
+                }
+            }
+            else if (nERIVersion == 16)
+            {
+                if ((nBitCount != 8) || (fEncodeType != 0))
+                {
+                    throw new Exception();
+                }
+            }
+            else
+            {
+                throw new Exception();
+            }
+            if (((fdwFlags & dfDifferential) != 0) && (m_pPrevImageRef != null))
+            {
+                EGL_IMAGE_INFO eiiPrev;
+                bool fReverse = ((fdwFlags & dfTopDown) != 0);
+                eiiPrev = m_pPrevImageRef;
+                if (m_eihInfo.nImageHeight < 0)
+                {
+                    fReverse = ! fReverse;
+                }
+                if (fReverse)
+                {
+                    eiiPrev.ptrImageArray.Offset = (int)(eiiPrev.ptrImageArray.Offset + (eiiPrev.dwImageHeight - 1) * eiiPrev.dwBitsPerPixel);
+                    eiiPrev.dwBytesPerLine = -eiiPrev.dwBytesPerLine;
+                }
+                if ((eiiPrev.fdwFormatType & Constants.EIF_SIDE_BY_SIDE) != 0)
+                {
+                    eiiPrev.dwImageWidth *= 2;
+                }
+                eriCopyImage(imginf, eiiPrev);
+                m_pPrevImageRef = null;
+            }
+            int i;
+            PTR_PROCEDURE pfnRestoreFunc;
+            m_nDstPixelBytes = imginf.dwBitsPerPixel >> 3;
+            m_nDstLineBytes = imginf.dwBytesPerLine;
+            pfnRestoreFunc = GetLLRestoreFunc(imginf.fdwFormatType, imginf.dwBitsPerPixel, fdwFlags);
+            if (pfnRestoreFunc == null)
+            {
+                throw new Exception();
+            }
+            if (m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_HUFFMAN)
+            {
+                ESLAssert(m_pHuffmanTree != null);
+                m_pHuffmanTree.Initalize();
+            }
+            else if (m_eihInfo.dwArchitecture == Constants.ERISA_NEMESIS_CODE)
+            {
+                ESLAssert(m_pProbERISA != null);
+                m_pProbERISA.Initalize();
+            }
+            Pointer ptrNextOperation = new Pointer(m_ptrOperations,0);
+            if (((fEncodeType & 0x01) != 0) && (m_nChannelCount >= 3))
+            {
+                ESLAssert(m_eihInfo.dwArchitecture != Constants.ERISA_NEMESIS_CODE);
+                int nAllBlockCount = (int)(m_nWidthBlocks * m_nHeightBlocks);
+                for (i = 0; i < nAllBlockCount; i++)
+                {
+                    if (m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_GAMMA)
+                    {
+                        m_ptrOperations[i] = (byte)(context.GetNBits(4) | 0xC0);
+                    }
+                    else
+                    {
+                        ESLAssert(m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_HUFFMAN);
+                        m_ptrOperations[i] = (byte)context.GetHuffmanCode(m_pHuffmanTree);
+                    }
+                }
+            }
+            if (context.GetABit() != 0)
+            {
+                throw new Exception();
+            }
+            if (m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_GAMMA)
+            {
+                context.PrepareGammaCode();
+                if ((fEncodeType & 0x01) != 0)
+                {
+                    context.InitGammaContext();
+                }
+            }
+            else if (m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_HUFFMAN)
+            {
+                context.PrepareToDecodeERINACode();
+            }
+            else
+            {
+                ESLAssert(m_eihInfo.dwArchitecture == Constants.ERISA_NEMESIS_CODE);
+                context.PrepareToDecodeERISACode();
+            }
+            int nWidthSamples = (int)(m_nChannelCount * m_nWidthBlocks * m_nBlockSize);
+            eslFillMemory(m_ptrLineBuf, 0, nWidthSamples);
+            
+            Rectangle irBlockRect = new Rectangle();
+            int nPosX, nPosY;
+            int nAllBlockLines = (int)(m_nBlockSize * m_nChannelCount);
+            int nLeftHeight = (int)imginf.dwImageHeight;
+            irBlockRect.Y = 0;
+            for (nPosY = 0; nPosY < (int)m_nHeightBlocks; nPosY++)
+            {
+                int nColumnBufSamples = (int)(m_nBlockSize * m_nChannelCount);
+                eslFillMemory(m_ptrColumnBuf, 0, nColumnBufSamples);
+                if ((fdwFlags & dfPreviewDecode) == 0)
+                {
+                    m_ptrDstBlock = new Pointer(imginf.ptrImageArray.Data, (int)(imginf.ptrImageArray.Offset + (nPosY * imginf.dwBytesPerLine * m_nBlockArea)));
+                    m_nDstHeight = m_nBlockSize;
+                    if ((int)m_nDstHeight > nLeftHeight)
+                    {
+                        m_nDstHeight = (uint)nLeftHeight;
+                    }
+                }
+                else
+                {
+                    m_ptrDstBlock = new Pointer(imginf.ptrImageArray.Data, imginf.ptrImageArray.Offset + (nPosY * imginf.dwBytesPerLine));
+                    m_nDstHeight = 1;
+                }
+                irBlockRect.Height = (int)m_nDstHeight;
+                int nLeftWidth = (int)imginf.dwImageWidth;
+                Pointer ptrNextLineBuf = m_ptrLineBuf.Clone();
+                irBlockRect.X = 0;
+                for (nPosX = 0; nPosX < (int)m_nWidthBlocks; nPosX++)
+                {
+                    if ((fdwFlags & dfPreviewDecode) == 0)
+                    {
+                        m_nDstWidth = m_nBlockSize;
+                        if ((int)m_nDstWidth > nLeftWidth)
+                        {
+                            m_nDstWidth = (uint)nLeftWidth;
+                        }
+                    }
+                    else
+                    {
+                        m_nDstWidth = 1;
+                    }
+                    irBlockRect.Width = (int)m_nDstWidth;
+                    uint dwOperationCode;
+                    if (m_nChannelCount >= 3)
+                    {
+                        if ((fEncodeType & 0x01) != 0)
+                        {
+                            dwOperationCode = ptrNextOperation.Data[ptrNextOperation.Offset++];
+                        }
+                        else if (m_eihInfo.dwArchitecture == Constants.ERISA_NEMESIS_CODE)
+                        {
+                            dwOperationCode = (uint)context.DecodeERISACode(m_pProbERISA);
+                        }
+                        else if (m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_HUFFMAN)
+                        {
+                            dwOperationCode = (uint)context.GetHuffmanCode(m_pHuffmanTree);
+                        }
+                        else
+                        {
+                            ESLAssert(m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_GAMMA);
+                            dwOperationCode = context.GetNBits(4) | 0xC0;
+                            context.InitGammaContext();
+                        }
+                    }
+                    else
+                    {
+                        if (m_eihInfo.fdwFormatType == Constants.ERI_GRAY_IMAGE)
+                        {
+                            dwOperationCode = 0xC0;
+                        }
+                        else
+                        {
+                            dwOperationCode = 0x00;
+                        }
+                        if (((fEncodeType & 0x01) == 0) && (m_eihInfo.dwArchitecture == Constants.ERI_RUNLENGTH_GAMMA))
+                        {
+                            context.InitGammaContext();
+                        }
+                    }
+                    if (context.DecodeSymbolBytes(m_ptrArrangeBuf, m_nBlockSamples) < m_nBlockSamples)
+                    {
+                        throw new Exception();
+                    }
+                    PerformOperation(dwOperationCode, (uint)nAllBlockLines, ptrNextLineBuf);
+                    ptrNextLineBuf += nColumnBufSamples;
+                    pfnRestoreFunc();
+                    OnDecodedBlock(nPosY, nPosX, irBlockRect);
+                    if ((fdwFlags & dfPreviewDecode) == 0)
+                    {
+                        m_ptrDstBlock.Offset += (int)(m_nDstPixelBytes * m_nBlockSize);
+                    }
+                    else
+                    {
+                        m_ptrDstBlock.Offset += (int)m_nDstPixelBytes;
+                    }
+                    irBlockRect.X += (int)m_nBlockSize;
+                    nLeftWidth -= (int)m_nBlockSize;
+                }
+                irBlockRect.Y += (int)m_nBlockSize;
+                nLeftHeight -= (int)m_nBlockSize;
+            }
         }
 
         protected void InitalizeArrangeTable()
@@ -487,7 +705,7 @@ namespace ERIShArp.Image
             }
         }
 
-        protected void PerformOperation(uint dwOpCode, uint nAllBlockLines, byte[] pNextLineBuf)
+        protected void PerformOperation(uint dwOpCode, uint nAllBlockLines, Pointer pNextLineBuf)
         {
             throw new NotImplementedException();
         }
@@ -562,9 +780,40 @@ namespace ERIShArp.Image
             throw new NotImplementedException();
         }
 
-        protected virtual PTR_PROCEDURE GetLLRestoreFunc(uint fdwFormatType, uint dwBitsPerPixel, uint fdwFlags)
+        protected void LL_RestoreDeltaRGB24()
         {
             throw new NotImplementedException();
+        }
+
+        protected void LL_RestoreDeltaRGBA32()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual PTR_PROCEDURE GetLLRestoreFunc(uint fdwFormatType, uint dwBitsPerPixel, uint fdwFlags)
+        {
+            switch (dwBitsPerPixel)
+            {
+                case 32:
+                    if (m_eihInfo.fdwFormatType == Constants.ERI_RGBA_IMAGE)
+                    {
+                        if ((fdwFlags & dfDifferential) == 0)
+                            return RestoreRGBA32;
+                        else
+                            return LL_RestoreDeltaRGBA32;
+                    }
+                    goto case 24;
+                case 24:
+                    if ((fdwFlags & dfDifferential) == 0)
+                        return RestoreRGB24;
+                    else
+                        return LL_RestoreDeltaRGB24;
+                case 16:
+                    return RestoreRGB16;
+                case 8:
+                    return RestoreGray8;
+            }
+            return null;
         }
 
         protected void DecodeLossyImage(EGL_IMAGE_INFO imginf, ERISADecodeContext context, uint fdwFlags)
@@ -666,6 +915,27 @@ namespace ERIShArp.Image
         {
             throw new NotImplementedException();
         }
+
+        private static void ESLAssert(bool condition)
+        {
+            if (!condition)
+                throw new Exception();
+        }
+
+        #region C Code
+        private void eriCopyImage(EGL_IMAGE_INFO imginf, EGL_IMAGE_INFO eiiPrevv)
+        {
+            throw new NotImplementedException();
+        }
+
+        private void eslFillMemory(Pointer ptr, byte content, int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                ptr.Data[ptr.Offset + i] = content;
+            }
+        }
+        #endregion
     }
 
     public delegate void PTR_PROCEDURE();

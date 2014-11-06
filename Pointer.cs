@@ -20,7 +20,7 @@ namespace ERIShArp
             Offset = -1;
             Data = null;
         }
-
+        
         public byte[] Data;
         public int Offset;
         public bool Valid;
@@ -110,6 +110,19 @@ namespace ERIShArp
             get
             {
                 return BitConverter.ToUInt32(Data, Offset);
+            }
+        }
+
+        public uint PeekUInt32Flipped
+        {
+            get
+            {
+                byte[] flipBfr = new byte[4];
+                flipBfr[0] = Data[Offset + 3];
+                flipBfr[1] = Data[Offset + 2];
+                flipBfr[2] = Data[Offset + 1];
+                flipBfr[3] = Data[Offset + 0];
+                return BitConverter.ToUInt32(flipBfr, 0);
             }
         }
 
