@@ -40,6 +40,11 @@ namespace ERIShArp.File
 
         public override ulong GetLargePosition()
         {
+            if (!this.parent.CanRead && !this.parent.CanSeek)
+            {
+                //looks like it's already closed.
+                return 0;
+            }
             return (ulong)parent.Position;
         }
 
@@ -55,6 +60,11 @@ namespace ERIShArp.File
 
         public override ulong SeekLarge(long nOffsetPos, SeekOrigin fSeekFrom)
         {
+            if (!this.parent.CanRead && !this.parent.CanSeek)
+            {
+                //looks like it's already closed.
+                return 0;
+            }
             return (ulong)parent.Seek(nOffsetPos, fSeekFrom);
         }
 

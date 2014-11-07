@@ -27,8 +27,8 @@ namespace ERIShArp.Image
         protected byte[] m_ptrOperations;		
         protected Pointer m_ptrColumnBuf;
         protected Pointer m_ptrLineBuf;
-        protected byte[] m_ptrDecodeBuf;
-        protected byte[] m_ptrArrangeBuf;
+        protected Pointer m_ptrDecodeBuf;
+        protected Pointer m_ptrArrangeBuf;
         /// <summary>
         /// 4 elements
         /// </summary>
@@ -66,7 +66,7 @@ namespace ERIShArp.Image
         /// <summary>
         /// 0x10 entries;
         /// </summary>
-        protected static PTR_PROCEDURE[] m_pfnColorOperation;
+        protected PTR_PROCEDURE[] m_pfnColorOperation;
 
         public ERISADecoder()
         {
@@ -94,6 +94,22 @@ namespace ERIShArp.Image
             m_pFilterImageBuf = null;
             m_pHuffmanTree = null;
             m_pProbERISA = null;
+            m_pfnColorOperation = new PTR_PROCEDURE[] { ColorOperation0000,
+	                                                    ColorOperation0000,
+	                                                    ColorOperation0000,
+	                                                    ColorOperation0000,
+	                                                    ColorOperation0000,
+	                                                    ColorOperation0101,
+	                                                    ColorOperation0110,
+	                                                    ColorOperation0111,
+	                                                    ColorOperation0000,
+	                                                    ColorOperation1001,
+	                                                    ColorOperation1010,
+	                                                    ColorOperation1011,
+	                                                    ColorOperation0000,
+	                                                    ColorOperation1101,
+	                                                    ColorOperation1110,
+	                                                    ColorOperation1111};
         }
 
         ~ERISADecoder()
@@ -156,8 +172,8 @@ namespace ERIShArp.Image
                 m_ptrOperations = new byte[m_nWidthBlocks * m_nHeightBlocks];
                 m_ptrColumnBuf = new Pointer(new byte[m_nBlockSize * m_nChannelCount],0);
                 m_ptrLineBuf = new Pointer(new byte[m_nChannelCount * ((int)m_nWidthBlocks << (int)m_eihInfo.dwBlockingDegree)],0);
-                m_ptrDecodeBuf = new byte[m_nBlockSamples];
-                m_ptrArrangeBuf = new byte[m_nBlockSamples];
+                m_ptrDecodeBuf = new Pointer(new byte[m_nBlockSamples],0);
+                m_ptrArrangeBuf = new Pointer(new byte[m_nBlockSamples],0);
 
                 if ((m_ptrOperations == null) || (m_ptrColumnBuf == null) || (m_ptrLineBuf == null) || (m_ptrDecodeBuf == null) || (m_ptrArrangeBuf == null))
                 {
@@ -294,7 +310,7 @@ namespace ERIShArp.Image
                         throw new Exception();
                     }
                 }
-                m_ptrDecodeBuf = new byte[m_nBlockArea * 16 * 1];
+                m_ptrDecodeBuf = new Pointer(new byte[m_nBlockArea * 16 * 1],0);
                 m_ptrVertBufLOT = new float[m_nBlockSamples * 2 * m_nWidthBlocks];
                 m_ptrHorzBufLOT = new float[m_nBlockSamples * 2];
                 m_ptrBlocksetBuf = new float[m_nBlockSamples * 2];
@@ -383,6 +399,7 @@ namespace ERIShArp.Image
             if (m_eihInfo.fdwTransformation == Constants.CVTYPE_LOSSLESS_ERI)
             {
                 DecodeLosslessImage(imginf, context, fdwFlags);
+                return;
             }
             else if ((m_eihInfo.fdwTransformation == Constants.CVTYPE_LOT_ERI) || (m_eihInfo.fdwTransformation == Constants.CVTYPE_DCT_ERI))
             {
@@ -556,7 +573,7 @@ namespace ERIShArp.Image
                 eslFillMemory(m_ptrColumnBuf, 0, nColumnBufSamples);
                 if ((fdwFlags & dfPreviewDecode) == 0)
                 {
-                    m_ptrDstBlock = new Pointer(imginf.ptrImageArray.Data, (int)(imginf.ptrImageArray.Offset + (nPosY * imginf.dwBytesPerLine * m_nBlockArea)));
+                    m_ptrDstBlock = new Pointer(imginf.ptrImageArray.Data, (int)(imginf.ptrImageArray.Offset + (int)(nPosY * imginf.dwBytesPerLine * m_nBlockSize)));
                     m_nDstHeight = m_nBlockSize;
                     if ((int)m_nDstHeight > nLeftHeight)
                     {
@@ -624,7 +641,7 @@ namespace ERIShArp.Image
                             context.InitGammaContext();
                         }
                     }
-                    if (context.DecodeSymbolBytes(m_ptrArrangeBuf, m_nBlockSamples) < m_nBlockSamples)
+                    if (context.DecodeSymbolBytes(m_ptrArrangeBuf.Data, m_nBlockSamples) < m_nBlockSamples)
                     {
                         throw new Exception();
                     }
@@ -707,12 +724,82 @@ namespace ERIShArp.Image
 
         protected void PerformOperation(uint dwOpCode, uint nAllBlockLines, Pointer pNextLineBuf)
         {
-            throw new NotImplementedException();
+            int i, j, k;
+            uint nArrangeCode, nColorOperation, nDiffOperation;
+            nColorOperation = dwOpCode & 0x0F;
+            nArrangeCode = (dwOpCode >> 4) & 0x03;
+            nDiffOperation = (dwOpCode >> 6) & 0x03;
+            if (nArrangeCode == 0)
+            {
+                eslMoveMemory(m_ptrDecodeBuf, m_ptrArrangeBuf, (int)m_nBlockSamples);
+                if (dwOpCode == 0)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                IntPointer pArrange = m_pArrangeTable[nArrangeCode];
+                for (i = 0; i < (int)m_nBlockSamples; i++)
+                {
+                    m_ptrArrangeBuf.Data[m_ptrArrangeBuf.Offset + pArrange.Data[pArrange.Offset + i]] = m_ptrArrangeBuf[i];
+                }
+            }
+            m_pfnColorOperation[nColorOperation]();
+            Pointer ptrNextBuf, ptrNextColBuf, ptrLineBuf;
+            if ((nDiffOperation & 0x01) != 0)
+            {
+                ptrNextBuf = m_ptrDecodeBuf.Clone();
+                ptrNextColBuf = m_ptrColumnBuf.Clone();
+                for (i = 0; i < nAllBlockLines; i++)
+                {
+                    byte nLastVal = ptrNextColBuf.Data[ptrNextColBuf.Offset];
+                    for (j = 0; j < (int)m_nBlockSize; j++)
+                    {
+                        nLastVal += ptrNextBuf.Data[ptrNextBuf.Offset];
+                        ptrNextBuf.Data[ptrNextBuf.Offset++] = nLastVal;
+                    }
+                    ptrNextColBuf.Data[ptrNextColBuf.Offset++] = nLastVal;
+                }
+            }
+            else
+            {
+                ptrNextBuf = m_ptrDecodeBuf.Clone();
+                ptrNextColBuf = m_ptrColumnBuf.Clone();
+                for (i = 0; i < nAllBlockLines; i++)
+                {
+                    ptrNextColBuf.Data[ptrNextColBuf.Offset++] = ptrNextBuf.Data[ptrNextBuf.Offset + (m_nBlockSize - 1)];
+                    ptrNextBuf.Offset += (int)m_nBlockSize;
+                }
+            }
+
+            ptrLineBuf = pNextLineBuf.Clone();
+            ptrNextBuf = m_ptrDecodeBuf.Clone();
+
+            for (k = 0; k < (int)m_nChannelCount; k++)
+            {
+                Pointer ptrLastLine = ptrLineBuf.Clone();
+                for (i = 0; i < (int)m_nBlockSize; i++)
+                {
+                    Pointer ptrCurrentLine = ptrNextBuf.Clone();
+                    for (j = 0; j < (int)m_nBlockSize; j++)
+                    {
+                        ptrNextBuf.Data[ptrNextBuf.Offset++] += ptrLastLine.Data[ptrLastLine.Offset++];
+                    }
+                    ptrLastLine = ptrCurrentLine;
+                }
+                for (j = 0; j < (int)m_nBlockSize; j++)
+                {
+                    ptrLineBuf.Data[ptrLineBuf.Offset++] = ptrLastLine.Data[ptrLastLine.Offset++];
+                }
+            }
         }
 
+        /// <summary>
+        /// This actually does nothing at all. Look at decimagec.cpp line 108
+        /// </summary>
         protected void ColorOperation0000()
         {
-            throw new NotImplementedException();
         }
 
         protected void ColorOperation0101()
@@ -727,37 +814,103 @@ namespace ERIShArp.Image
 
         protected void ColorOperation0111()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)m_nBlockArea;
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset];
+                ptrNext.Data[ptrNext.Offset + nChSamples] += nBase;
+                ptrNext.Data[ptrNext.Offset + (nChSamples * 2)] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation1001()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)m_nBlockArea;
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset + nChSamples];
+                ptrNext.Data[ptrNext.Offset] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation1010()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)m_nBlockArea;
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset + nChSamples];
+                ptrNext.Data[ptrNext.Offset + (nChSamples * 2)] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation1011()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)m_nBlockArea;
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset + nChSamples];
+                ptrNext.Data[ptrNext.Offset] += nBase;
+                ptrNext.Data[ptrNext.Offset + (nChSamples * 2)] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation1101()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)(m_nBlockArea * 2);
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset + nChSamples];
+                ptrNext.Data[ptrNext.Offset] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation1110()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)m_nBlockArea;
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset + (nChSamples * 2)];
+                ptrNext.Data[ptrNext.Offset + nChSamples] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation1111()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)m_nBlockArea;
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset + (nChSamples * 2)];
+                ptrNext.Data[ptrNext.Offset] += nBase;
+                ptrNext.Data[ptrNext.Offset + nChSamples] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void RestoreGray8()
@@ -772,7 +925,26 @@ namespace ERIShArp.Image
 
         protected void RestoreRGB24()
         {
-            throw new NotImplementedException();
+            Pointer ptrDstLine = m_ptrDstBlock.Clone();
+            Pointer ptrSrcLine = m_ptrDecodeBuf.Clone();
+            uint nBytesPerPixel = m_nDstPixelBytes;
+            int nBlockSamples = (int)m_nBlockArea;
+            for (uint y = 0; y < m_nDstHeight; y++)
+            {
+                Pointer ptrDstNext = ptrDstLine.Clone();
+                Pointer ptrSrcNext = ptrSrcLine.Clone();
+
+                for (uint x = 0; x < m_nDstWidth; x++)
+                {
+                    ptrDstNext.Data[ptrDstNext.Offset + 0] = (byte)ptrSrcNext.Data[ptrSrcNext.Offset];
+                    ptrDstNext.Data[ptrDstNext.Offset + 1] = (byte)ptrSrcNext.Data[ptrSrcNext.Offset + nBlockSamples];
+                    ptrDstNext.Data[ptrDstNext.Offset + 2] = (byte)ptrSrcNext.Data[ptrSrcNext.Offset + (nBlockSamples * 2)];
+                    ptrSrcNext.Offset++;
+                    ptrDstNext.Offset += (int)nBytesPerPixel;
+                }
+                ptrSrcLine.Offset += (int)m_nBlockSize;
+                ptrDstLine.Offset += m_nDstLineBytes;
+            }
         }
 
         protected void RestoreRGBA32()
@@ -933,6 +1105,14 @@ namespace ERIShArp.Image
             for (int i = 0; i < length; i++)
             {
                 ptr.Data[ptr.Offset + i] = content;
+            }
+        }
+
+        private void eslMoveMemory(Pointer ptrDst, Pointer ptrSrc, int dwLength)
+        {
+            for (int i = 0; i < dwLength; i++)
+            {
+                ptrDst.Data[ptrDst.Offset + i] = ptrSrc.Data[ptrSrc.Offset + i];
             }
         }
         #endregion
