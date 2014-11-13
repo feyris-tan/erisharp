@@ -440,6 +440,7 @@ namespace ERIShArp.Image
         /// <param name="rect"></param>
         protected virtual void OnDecodedBlock(int line, int column, Rectangle rect)
         {
+            Console.WriteLine("Decoded: " + rect.ToString());
         }
     
         protected void DecodeLosslessImage(EGL_IMAGE_INFO imginf, ERISADecodeContext context, uint fdwFlags)
@@ -643,6 +644,7 @@ namespace ERIShArp.Image
                     }
                     if (context.DecodeSymbolBytes(m_ptrArrangeBuf.Data, m_nBlockSamples) < m_nBlockSamples)
                     {
+                        System.IO.File.WriteAllBytes("test.bin", m_ptrDstBlock.Data);
                         throw new Exception();
                     }
                     PerformOperation(dwOperationCode, (uint)nAllBlockLines, ptrNextLineBuf);
@@ -720,6 +722,7 @@ namespace ERIShArp.Image
                     }
                 }
             }
+            m_pArrangeTable[0].Dump("sharp.bin");
         }
 
         protected void PerformOperation(uint dwOpCode, uint nAllBlockLines, Pointer pNextLineBuf)

@@ -174,7 +174,7 @@ namespace ERIShArp.Context
                     }
                 }
                 m_nIntBufCount = 32;
-                m_dwIntBuffer = m_ptrNextBuf.PeekUInt32Flipped;
+                m_dwIntBuffer = (uint)((m_ptrNextBuf[0] << 24) | (m_ptrNextBuf[1] << 16) | (m_ptrNextBuf[2] << 8) | (m_ptrNextBuf[3]));
                 m_ptrNextBuf += 4;
                 m_nBufCount -= 4;
             }
@@ -187,10 +187,12 @@ namespace ERIShArp.Context
             {
                 return 1;
             }
-            int nValue = (int)(((short)m_dwIntBuffer) >> 31);
+            int nValue = (int)(((int)m_dwIntBuffer) >> 31);
             --m_nIntBufCount;
             m_dwIntBuffer <<= 1;
             return nValue;
+            //TROLLOLOLOL
+            //return (int)GetNBits(1);
         }
 
         public uint GetNBits(int n)
@@ -234,12 +236,14 @@ namespace ERIShArp.Context
 
         public void InitGammaContext()
         {
+            //TODO: Hier könnte der Hund begraben liegen! Die m_flgZero ist -1, aber wie kann das sein?
             m_flgZero = GetABit();
             m_nLength = 0;
         }
 
         public int GetGammaCode()
         {
+            int nCode, nBase;
             if (PrefetchBuffer())
             {
                 return 0;
@@ -254,7 +258,6 @@ namespace ERIShArp.Context
                 return 1;
             }
 
-            int nCode = 0, nBase = 2;
             if (PrefetchBuffer())
             {
                 return 0;
@@ -262,7 +265,7 @@ namespace ERIShArp.Context
             if (((~m_dwIntBuffer & 0x55000000) != 0) && (m_nIntBufCount >= 8))
             {
                 int i = (int)((m_dwIntBuffer >> 24) << 1);
-                nCode = nGammaCodeLookup[i];
+                nCode = (byte)nGammaCodeLookup[i];
                 int nBitCount = nGammaCodeLookup[i + 1];
                 ESLAssert(nBitCount <= m_nIntBufCount);
                 ESLAssert(nCode > 0);
@@ -288,12 +291,18 @@ namespace ERIShArp.Context
                 }
                 else
                 {
-                    PrefetchBuffer();
+                    if (PrefetchBuffer())
+                    {
+                        return 0;
+                    }
                     nCode = (int)((nCode << 1) | (m_dwIntBuffer >> 31));
                     m_nIntBufCount--;
                     m_dwIntBuffer <<= 1;
-                    
-                    PrefetchBuffer();
+
+                    if (PrefetchBuffer())
+                    {
+                        return 0;
+                    }
                     dwIntBuf = m_dwIntBuffer;
                     m_nIntBufCount--;
                     m_dwIntBuffer <<= 1;
