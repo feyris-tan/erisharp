@@ -191,8 +191,6 @@ namespace ERIShArp.Context
             --m_nIntBufCount;
             m_dwIntBuffer <<= 1;
             return nValue;
-            //TROLLOLOLOL
-            //return (int)GetNBits(1);
         }
 
         public uint GetNBits(int n)

@@ -440,7 +440,6 @@ namespace ERIShArp.Image
         /// <param name="rect"></param>
         protected virtual void OnDecodedBlock(int line, int column, Rectangle rect)
         {
-            Console.WriteLine("Decoded: " + rect.ToString());
         }
     
         protected void DecodeLosslessImage(EGL_IMAGE_INFO imginf, ERISADecodeContext context, uint fdwFlags)
@@ -807,12 +806,30 @@ namespace ERIShArp.Image
 
         protected void ColorOperation0101()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)m_nBlockArea;
+            int nRepCount = (int)m_nBlockArea;
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset];
+                ptrNext.Data[ptrNext.Offset + nChSamples] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation0110()
         {
-            throw new NotImplementedException();
+            byte nBase;
+            Pointer ptrNext = m_ptrDecodeBuf.Clone();
+            int nChSamples = (int)(m_nBlockArea * 2);
+            int nRepCount = (int)(m_nBlockArea);
+            do
+            {
+                nBase = ptrNext.Data[ptrNext.Offset];
+                ptrNext.Data[ptrNext.Offset + nChSamples] += nBase;
+                ptrNext.Offset++;
+            } while (--nRepCount != 0);
         }
 
         protected void ColorOperation0111()
